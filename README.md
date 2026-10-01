@@ -13,6 +13,7 @@
 **Group members:**
 
 - Andrei Dunuta
+- Teodora Costache
 
 **Research question:** One sentence stating what you're investigating.
 
