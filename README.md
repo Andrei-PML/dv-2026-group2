@@ -12,7 +12,7 @@
 
 **Group members:**
 
-- Firstname Lastname
+- Andrei Dunuta
 
 **Research question:** One sentence stating what you're investigating.
 
