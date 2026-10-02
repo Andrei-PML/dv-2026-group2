@@ -14,6 +14,7 @@
 
 - Andrei Dunuta
 - Teodora Costache
+- Filip Gawrylczyk
 
 **Research question:** One sentence stating what you're investigating.
 
