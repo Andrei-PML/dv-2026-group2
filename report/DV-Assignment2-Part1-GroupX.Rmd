@@ -178,7 +178,7 @@ n_two <- school_data |>
   ungroup() |>
   select(VSO:VWO) |>
   as.matrix() |>
-  (\(x) sum(x == 1.621641, na.rm = TRUE))
+  (\(x) sum(x == 1.621641, na.rm = TRUE))()
 
 # Simple division to lower the overshoot by the amount we need.
 # Currently should equal the correct number, because
@@ -205,12 +205,14 @@ school_data <- school_data |>
            is.finite(HAVO_percent) &
            is.finite(VMBO_percent))
 
-# In order to plot dots, we will try to look at larger
-# schools only so that the plot is not just simply full of dots.
-# They will show school_level points on the graph.
+# Now we pivot the dataframe so that it is easier to put it into
+# ggplot.
 
-school_data2 <- school_data |>
-  filter(n_students >= 50)
+school_data <- school_data |>
+  pivot_longer(c(VWO_percent, HAVO_percent, VMBO_percent),
+               names_to = "group", names_pattern = "(.+)_percent",
+               values_to = "pct") |>
+  mutate(group = factor(group, levels = c("VWO", "HAVO", "VMBO")))
 
 
 ```
@@ -219,57 +221,39 @@ school_data2 <- school_data |>
 # Making plot with score on x axis, and each line
 # representing the percentage of students with each advice.
 # Y-axis is that percentage.
-ggplot() +
-  # We will add points to show individual large schools,
-  # and where they are placed on the plot, to be able to visualize
-  # what is going on well.
-  geom_point(data = school_data2,
-             aes(x = score,
-                 y = VWO_percent,
-                 color = "VWO"), 
-             alpha = 0.3) +
-  geom_point(data = school_data2,
-             aes(x = score,
-                 y = HAVO_percent,
-                 color = "HAVO"), 
-             alpha = 0.3) +
-  geom_point(data = school_data2,
-             aes(x = score,
-                 y = VMBO_percent,
-                 color = "VMBO"), 
-             alpha = 0.3) +
-  # Each line has larger width and se set to FALSE
-  # for easier understanding of what is going on.
-  geom_smooth(data = school_data,
-    aes(x = score, y = VWO_percent, color = "VWO"),
-    se = FALSE, linewidth = 1.7) +
-  geom_smooth(data = school_data,
-    aes(x = score, y = HAVO_percent, color = "HAVO"),
-    se = FALSE, linewidth = 1.7) +
-  geom_smooth(data = school_data,
-    aes(x = score, y = VMBO_percent, color = "VMBO"),
-    se = FALSE, linewidth = 1.7) +
-  # Now we use colors, since they are kind of factors,
-  # we chose to use a gradient.
-  # Also the legend will say all the options of what
-  # the students could have been so it does not mislead.
-  scale_color_manual(
-    name = "School advice",
-    values = c(VWO = "#E66101",
-               HAVO = "#9E4F9E",
-               VMBO = "#2166AC"),
-    breaks = c("VWO", "HAVO", "VMBO"),
-    labels = c(VWO = "VWO and VWO/HAVO",
-               HAVO = "HAVO and HAVO/VMBO",
-               VMBO = "VMBO, PRO and VSO")) +
-  # Using labels and paste0 for lintr check to pass.
+ggplot(school_data, aes(x = score, y = pct)) +
+  # We add points for each school on the plot to be able
+  # to visualize the spread
+  geom_point(aes(color = group), alpha = 0.075) +
+  # And add a line in the middle, that shows where, more or less
+  # the averages are.
+  geom_smooth(se = FALSE, color = "black") +
+  # Now with geom_quantile we create quantile lines, that
+  # show us where 80% of schools fall, to be able
+  # to see whether different schools give similar advice
+  # if they have similar test results, the line is dashed.
+  geom_quantile(quantiles = c(0.1, 0.9),
+                color = "black",
+                linetype = "dashed",
+                linewidth = 1) +
+  # In order to see all 3 plots at once we use facet wrap.
+  facet_wrap(~ group, nrow = 1,
+             labeller = as_labeller(c(VWO = "VWO and VWO/HAVO",
+                                      HAVO = "HAVO and HAVO/VMBO",
+                                      VMBO = "VMBO, PRO and VSO"))) +
+  # And we add some colors that are quite different from one another
+  # But still show that there are factors so VMBO -> HAVO -> VWO
+  scale_color_manual(values = c(VWO = "#E66101",
+                                HAVO = "#9E4F9E",
+                                VMBO = "#2166AC"),
+                     guide = "none") +
+  # Adding normal labels.
   labs(x = "% of students reaching target level, per school",
        y = "% of advice given, per school",
-       title = paste0("% of School Recommendations ",
-                      "\nBased on % of Students ",
-                      "Reaching Target Level"),
-       subtitle = paste0("Large schools appear as three points ",
-                    "each, one per recommendation type")) +
+       title = paste0("Do schools with similar target level",
+                      "scores give similar school advice?"),
+       subtitle = paste0("Solid lines show average trend. Dashed lines ",
+                         "show where 80% of schools fall")) +
   # Since the percentage chance is 0 to 100 for both axes,
   # we changed both axes to show the entire range of possibilities.
   coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
@@ -277,8 +261,9 @@ ggplot() +
   theme_minimal(base_size = 12) +
   theme(panel.grid.minor = element_blank())
 
+
 ```
-**The above plot shows % of advice giver per school based on % of students in that school that reached target level. It includes lines showing that relationship for each recommendation type (like VWO or VMBO) and also includes large schools with at least 50 students, as points. Based on our research question, it seems that there indeed is a relationship between how many children reach target level and what type of advice is given, which makes sense. This can be seen because the lines have completely different slopes and VWO points seem have a higher value on the y-axis as target level gets reached more, and VMBO points seem to have lower y-axis value. Meanwhile, HAVO recommendations seem to stay pretty still, regardless of students reaching the target level.**
+**The above plot shows % of advice given per school based on % of students in that school that reached target level. It includes lines showing that relationship for each recommendation type (like VWO or VMBO) and also includes singular schools as points. To be able to visualize the spread, and whether it is large, we showed 80% range of schools, and around where it is. It seems that there indeed is a relationship between how many children reach target level and what type of advice is given. Based on our research question, it does seem that a lot of schools, even if they have similar test results, give very different advice, which seems to be the case for all plots but especially the higher end of the VWO range, where the advice is very different between schools.**
 ```{r data-preparation-plot2}
 ```
 
