@@ -165,28 +165,33 @@ school_data <- school_data |>
 
 ```
 
-```{r exploratory-plot1, fig.height = 5, fig.width = 5.5, fig.align = "center"}
-# Filip will make the exploratory plot in this chunk.
+```{r exploratory-plot1, fig.height = 5, fig.width = 7.5 , fig.align = "center"}
 
 ggplot(school_data, aes(x = score)) +
   geom_smooth(
-    aes(y = VWO_percent, color = "VWO"), se = FALSE) +
+    aes(y = VWO_percent, color = "VWO"),
+    se = FALSE, linewidth = 1.7) +
   geom_smooth(
-    aes(y = HAVO_percent, color = "HAVO"), se = FALSE) +
+    aes(y = HAVO_percent, color = "HAVO"),
+    se = FALSE, linewidth = 1.7) +
   geom_smooth(
-    aes(y = VMBO_percent, color = "VMBO"), se = FALSE) +
+    aes(y = VMBO_percent, color = "VMBO"),
+    se = FALSE, linewidth = 1.7) +
   scale_color_manual(
     name = "School advice",
-    values = c(VWO = "#1B4F8F", HAVO = "#4A90D9", VMBO = "#A9CCEE"),
-    breaks = c("VWO", "HAVO", "VMBO")) +
+    values = c(VWO = "#08306B", HAVO = "#2F7FC1", VMBO = "#86C5F0"),
+    breaks = c("VWO", "HAVO", "VMBO"),
+    labels = c(VWO = "VWO and VWO/HAVO",
+               HAVO = "HAVO and VMBO/HAVO",
+               VMBO = "VMBO, PRO and VSO")) +
   labs(x = "% of students reaching target level, per school",
        y = "% of advice given, per school",
-       title = paste0("% of school reccomendations ",
+       title = paste0("% of school recommendations ",
                       "based on\npercentage of students ",
                       "reaching target level")) +
   coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
-  theme_minimal() +
-  theme()
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank())
 
 ```
 
