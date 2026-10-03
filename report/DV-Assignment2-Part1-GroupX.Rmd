@@ -123,6 +123,10 @@ school_data <- school_data |>
                 VSO:ADVIES_NIET_MOGELIJK),
             by = c("INSTELLINGSCODE", "VESTIGINGSCODE"))
 
+school_data <- school_data |>
+  mutate(across(VSO:ADVIES_NIET_MOGELIJK,
+                ~ as.numeric(replace(.x, .x == "<5", "2.5"))))
+
 
 # school_data <- school_data |> - For later
 #  drop_na(score)
