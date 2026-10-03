@@ -1,6 +1,6 @@
 ---
 title: "DV Assignment 2, Part 1: [Your Title Here]"
-author: "Group X: Firstname Lastname, Firstname Lastname, Firstname Lastname"
+author: "Group 2: Filip Gawrylczyk, Teodora Costache, Andrei Dunuta"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -51,6 +51,7 @@ source(here("scripts", "01-get-data.R"))
 
 # Loading necessary libraries.
 library(tidyverse)
+library(plotly)
 ```
 
 ## Research question
@@ -89,7 +90,7 @@ count_cols <- c(
   "TV_LAGER1F", "TV_1F", "TV_2F"
 )
 # Same as assignment 1 to make the score column,
-# of many people "pass" the level. Also 
+# of many people "pass" both literature and math level. Also 
 # added VESTIGINGSCODE again.
 ref_levels <- referentieniveaus |>
   mutate(across(all_of(count_cols), ~ suppressWarnings(as.numeric(.)))) |>
@@ -204,24 +205,49 @@ school_data <- school_data |>
            is.finite(HAVO_percent) &
            is.finite(VMBO_percent))
 
+# In order to plot dots, we will try to look at larger
+# schools only so that the plot is not just simply full of dots.
+# They will show school_level points on the graph.
+
+school_data2 <- school_data |>
+  filter(n_students >= 50)
+
 
 ```
 
-```{r exploratory-plot1, fig.height = 5, fig.width = 7.5 , fig.align = "center"}
+```{r exploratory-plot1, fig.height = 5, fig.width = 7.5 , fig.align = "center", message=FALSE}
 # Making plot with score on x axis, and each line
 # representing the percentage of students with each advice.
 # Y-axis is that percentage.
-ggplot(school_data, aes(x = score)) +
+ggplot() +
+  # We will add points to show individual large schools,
+  # and where they are placed on the plot, to be able to visualize
+  # the spread well.
+  geom_point(data = school_data2,
+             aes(x = score,
+                 y = VWO_percent,
+                 color = "VWO"), 
+             alpha = 0.3) +
+  geom_point(data = school_data2,
+             aes(x = score,
+                 y = HAVO_percent,
+                 color = "HAVO"), 
+             alpha = 0.3) +
+  geom_point(data = school_data2,
+             aes(x = score,
+                 y = VMBO_percent,
+                 color = "VMBO"), 
+             alpha = 0.3) +
   # Each line has larger width and se set to FALSE
   # for easier understanding of what is going on.
-  geom_smooth(
-    aes(y = VWO_percent, color = "VWO"),
+  geom_smooth(data = school_data,
+    aes(x = score, y = VWO_percent, color = "VWO"),
     se = FALSE, linewidth = 1.7) +
-  geom_smooth(
-    aes(y = HAVO_percent, color = "HAVO"),
+  geom_smooth(data = school_data,
+    aes(x = score, y = HAVO_percent, color = "HAVO"),
     se = FALSE, linewidth = 1.7) +
-  geom_smooth(
-    aes(y = VMBO_percent, color = "VMBO"),
+  geom_smooth(data = school_data,
+    aes(x = score, y = VMBO_percent, color = "VMBO"),
     se = FALSE, linewidth = 1.7) +
   # Now we use colors, since they are kind of factors,
   # we chose to use a gradient.
@@ -229,9 +255,9 @@ ggplot(school_data, aes(x = score)) +
   # the students could have been so it does not mislead.
   scale_color_manual(
     name = "School advice",
-    values = c(VWO = "#08306B",
-               HAVO = "#2F7FC1",
-               VMBO = "#86C5F0"),
+    values = c(VWO = "#E66101",
+               HAVO = "#9E4F9E",
+               VMBO = "#2166AC"),
     breaks = c("VWO", "HAVO", "VMBO"),
     labels = c(VWO = "VWO and VWO/HAVO",
                HAVO = "HAVO and HAVO/VMBO",
