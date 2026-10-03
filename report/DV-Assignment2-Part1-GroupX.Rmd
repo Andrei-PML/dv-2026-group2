@@ -165,13 +165,28 @@ school_data <- school_data |>
 
 ```
 
-```{r exploratory-plot1}
+```{r exploratory-plot1, fig.height = 5, fig.width = 5.5, fig.align = "center"}
 # Filip will make the exploratory plot in this chunk.
 
 ggplot(school_data, aes(x = score)) +
-  geom_smooth(aes(y = VWO_percent), color = "green") +
-  geom_smooth(aes(y = HAVO_percent), color = "blue") +
-  geom_smooth(aes(y = VMBO_percent), color = "yellow") 
+  geom_smooth(
+    aes(y = VWO_percent, color = "VWO"), se = FALSE) +
+  geom_smooth(
+    aes(y = HAVO_percent, color = "HAVO"), se = FALSE) +
+  geom_smooth(
+    aes(y = VMBO_percent, color = "VMBO"), se = FALSE) +
+  scale_color_manual(
+    name = "School advice",
+    values = c(VWO = "#1B4F8F", HAVO = "#4A90D9", VMBO = "#A9CCEE"),
+    breaks = c("VWO", "HAVO", "VMBO")) +
+  labs(x = "% of students reaching target level, per school",
+       y = "% of advice given, per school",
+       title = paste0("% of school reccomendations ",
+                      "based on\npercentage of students ",
+                      "reaching target level")) +
+  coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+  theme_minimal() +
+  theme()
 
 ```
 
