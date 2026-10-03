@@ -134,11 +134,17 @@ school_data <- school_data |>
 # BUT THEN if we use 2.5 the numbers get inflated a lot over
 # n_student, for example a school with 13 student had a total
 # of advices as 30 - this happened with many schools. 
-# Because of this we are going to use 2 instead of 2.5 -
-# close to the average of possibilities but a bit lower.
+# Because of this we tried to use 2 instead of 2.5 -
+# close to the average of possibilities but a bit lower, but
+# it was still too much overshoot.
+# Later on we decided to find the exact number that would
+# make an average percentage count towards 100%, the computation
+# is found later as part of advice_check.
+
+
 school_data <- school_data |>
   mutate(across(VSO:ADVIES_NIET_MOGELIJK,
-                ~ as.numeric(replace(.x, .x == "<5", "2"))))
+                ~ as.numeric(replace(.x, .x == "<5", "1.621641"))))
 
 # Dropping any NAs that might be in the data and combining 
 # different advice types into at least VWO, at least HAVO
@@ -154,14 +160,44 @@ school_data <- school_data |>
   group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
   mutate(at_least_VWO = HAVO_VWO + VWO,
          at_least_HAVO = VMBO_GT_HAVO + HAVO,
-         VMBO_or_worse = rowSums(pick(VSO:VMBO_GT))) |>
-  select(!VSO:ADVIES_NIET_MOGELIJK) |>
-  mutate(VWO_percent = (at_least_VWO / n_students) * 100,
-         HAVO_percent = (at_least_HAVO / n_students) * 100,
-         VMBO_percent = (VMBO_or_worse / n_students) * 100) |>
-  mutate(across(VWO_percent:VMBO_percent,
-                ~ 100 * .x / (VWO_percent + HAVO_percent + VMBO_percent))) |>
-  select(!at_least_VWO:VMBO_or_worse)
+         VMBO_or_worse = rowSums(pick(VSO:VMBO_GT))) 
+# Now time to check what numbers are the best to replace <5 with 
+# so that there is mo issue with schools having too many
+# or too few students.
+
+advice_check <- school_data |>
+  group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
+  mutate(total_advice = at_least_VWO + at_least_HAVO + VMBO_or_worse,
+         over_advice = total_advice - n_students) |>
+  summarize(total_advice, n_students, over_advice) 
+
+mean(advice_check$over_advice)
+
+# Now let's try to find the number which would make it 0.
+
+# This is the sum by which our replacement overshoots.
+sum_over <- sum(advice_check$over_advice)
+
+# This is how many 2s we have in a dataset (used to be <5)
+n_two <- school_data |>
+  ungroup() |>
+  select(VSO:VWO) |>
+  as.matrix() |>
+  (\(x) sum(x == 1.621641, na.rm = TRUE))()
+
+# Simple division to lower the overshoot by the amount we need.
+
+1.621641 - sum_over/n_two
+
+# With <5 replaced by 2, on average there is 1.8 too many advices per student.
+# We will change <5 to another number so the number is closer to 0.
+
+# school_data <-  mutate(VWO_percent = (at_least_VWO / n_students) * 100,
+#         HAVO_percent = (at_least_HAVO / n_students) * 100,
+#         VMBO_percent = (VMBO_or_worse / n_students) * 100) |>
+#  mutate(across(VWO_percent:VMBO_percent,
+#                ~ 100 * .x / (VWO_percent + HAVO_percent + VMBO_percent))) |>
+#  select(!at_least_VWO:VMBO_or_worse)
 
 ```
 
