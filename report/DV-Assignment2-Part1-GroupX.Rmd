@@ -134,7 +134,12 @@ school_data <- school_data |>
   mutate(at_least_VWO = HAVO_VWO + VWO,
          at_least_HAVO = VMBO_GT_HAVO + HAVO,
          VMBO_or_worse = rowSums(pick(VSO:VMBO_GT))) |>
-  select(!VSO:ADVIES_NIET_MOGELIJK)
+  select(!VSO:ADVIES_NIET_MOGELIJK) |>
+  mutate(VWO_percent = (at_least_VWO / n_students) * 100,
+         HAVO_percent = (at_least_HAVO / n_students) * 100,
+         VMBO_percent = (VMBO_or_worse / n_students) * 100) |>
+  mutate(across(VWO_percent:VMBO_percent,
+                ~ 100 * .x / (VWO_percent + HAVO_percent + VMBO_percent)))
 
 
 ```
