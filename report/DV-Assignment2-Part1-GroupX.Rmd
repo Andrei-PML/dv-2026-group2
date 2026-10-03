@@ -178,7 +178,7 @@ n_two <- school_data |>
   ungroup() |>
   select(VSO:VWO) |>
   as.matrix() |>
-  (\(x) sum(x == 1.621641, na.rm = TRUE))()
+  (\(x) sum(x == 1.621641, na.rm = TRUE))
 
 # Simple division to lower the overshoot by the amount we need.
 # Currently should equal the correct number, because
@@ -222,7 +222,7 @@ school_data2 <- school_data |>
 ggplot() +
   # We will add points to show individual large schools,
   # and where they are placed on the plot, to be able to visualize
-  # the spread well.
+  # what is going on well.
   geom_point(data = school_data2,
              aes(x = score,
                  y = VWO_percent,
@@ -265,9 +265,11 @@ ggplot() +
   # Using labels and paste0 for lintr check to pass.
   labs(x = "% of students reaching target level, per school",
        y = "% of advice given, per school",
-       title = paste0("% of school recommendations ",
-                      "based on\npercentage of students ",
-                      "reaching target level")) +
+       title = paste0("% of School Recommendations ",
+                      "\nBased on % of Students ",
+                      "Reaching Target Level"),
+       subtitle = paste0("Large schools appear as three points ",
+                    "each, one per recommendation type")) +
   # Since the percentage chance is 0 to 100 for both axes,
   # we changed both axes to show the entire range of possibilities.
   coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
@@ -276,7 +278,7 @@ ggplot() +
   theme(panel.grid.minor = element_blank())
 
 ```
-
+**The above plot shows % of advice giver per school based on % of students in that school that reached target level. It includes lines showing that relationship for each recommendation type (like VWO or VMBO) and also includes large schools with at least 50 students, as points. Based on our research question, it seems that there indeed is a relationship between how many children reach target level and what type of advice is given, which makes sense. This can be seen because the lines have completely different slopes and VWO points seem have a higher value on the y-axis as target level gets reached more, and VMBO points seem to have lower y-axis value. Meanwhile, HAVO recommendations seem to stay pretty still, regardless of students reaching the target level.**
 ```{r data-preparation-plot2}
 ```
 
