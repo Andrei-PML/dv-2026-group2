@@ -51,7 +51,6 @@ source(here("scripts", "01-get-data.R"))
 
 # Loading necessary libraries.
 library(tidyverse)
-library(plotly)
 ```
 
 ## Research question
@@ -90,7 +89,7 @@ count_cols <- c(
   "TV_LAGER1F", "TV_1F", "TV_2F"
 )
 # Same as assignment 1 to make the score column,
-# of many people "pass" both literature and math level. Also 
+# of many people "pass" both literature and math level. Also
 # added VESTIGINGSCODE again.
 ref_levels <- referentieniveaus |>
   mutate(across(all_of(count_cols), ~ suppressWarnings(as.numeric(.)))) |>
@@ -121,19 +120,19 @@ school_data <- ref_levels |>
 # per school.
 school_data <- school_data |>
   left_join(schooladviezen |>
-              select(
-                INSTELLINGSCODE:INSTELLINGSNAAM_VESTIGING,
-                PLAATSNAAM,
-                GEMEENTENAAM,
-                PROVINCIE,
-                VSO:ADVIES_NIET_MOGELIJK),
-            by = c("INSTELLINGSCODE", "VESTIGINGSCODE"))
+    select(
+           INSTELLINGSCODE:INSTELLINGSNAAM_VESTIGING,
+           PLAATSNAAM,
+           GEMEENTENAAM,
+           PROVINCIE,
+           VSO:ADVIES_NIET_MOGELIJK),
+  by = c("INSTELLINGSCODE", "VESTIGINGSCODE"))
 
 # Since DUO writes small numbers as <5, the options
 # are for it to be 1, 2, 3 or 4, and the average is 2.5.
 # BUT THEN if we use 2.5 the numbers get inflated a lot over
 # n_student, for example a school with 13 student had a total
-# of advices as 30 - this happened with many schools. 
+# of advices as 30 - this happened with many schools.
 # Because of this we tried to use 2 instead of 2.5 -
 # close to the average of possibilities but a bit lower, but
 # it was still too much overshoot.
@@ -146,17 +145,17 @@ school_data <- school_data |>
   mutate(across(VSO:ADVIES_NIET_MOGELIJK,
                 ~ as.numeric(replace(.x, .x == "<5", "1.621641"))))
 
-# Dropping any NAs that might be in the data and combining 
+# Dropping any NAs that might be in the data and combining
 # different advice types into at least VWO, at least HAVO
 # (without the VWO) and all lower than those.
 
-school_data <- school_data |> 
+school_data <- school_data |>
   drop_na(score, n_students, VSO:VWO) |>
   group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
   mutate(at_least_VWO = HAVO_VWO + VWO,
          at_least_HAVO = VMBO_GT_HAVO + HAVO,
-         VMBO_or_worse = rowSums(pick(VSO:VMBO_GT))) 
-# Now time to check what numbers are the best to replace <5 with 
+         VMBO_or_worse = rowSums(pick(VSO:VMBO_GT)))
+# Now time to check what numbers are the best to replace <5 with
 # so that there is no issue with schools having too many
 # or too few students. When we were using 2, this was an issue.
 
@@ -164,7 +163,7 @@ advice_check <- school_data |>
   group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
   mutate(total_advice = at_least_VWO + at_least_HAVO + VMBO_or_worse,
          over_advice = total_advice - n_students) |>
-  summarize(total_advice, n_students, over_advice, .groups = "drop_last") 
+  summarize(total_advice, n_students, over_advice, .groups = "drop_last")
 # The mean with <5 being replaced by 2 was 1.8.
 # Then we computed a number that would make it 0. IF all computations
 # go correctly, all the following numbers will equal 0.
@@ -173,7 +172,7 @@ mean(advice_check$over_advice)
 # This is the sum by which our replacement overshoots.
 sum_over <- sum(advice_check$over_advice)
 
-# This is how many numbers replacing <5 we havein a dataset 
+# This is how many numbers replacing <5 we havein a dataset
 n_two <- school_data |>
   ungroup() |>
   select(VSO:VWO) |>
@@ -184,14 +183,14 @@ n_two <- school_data |>
 # Currently should equal the correct number, because
 # the overshoot is 0
 
-1.621641 - sum_over/n_two
+1.621641 - (sum_over / n_two)
 
-# Now we will calculate percentages of students 
+# Now we will calculate percentages of students
 # in each school that got each advice.
 # Later, since some schools had a lot too many or too few
 # advices compared to students, we normalize the number
 # into advice divided by advices given * 100 for percentage.
-# At the end, filtering out one school in Utrecht that gave 
+# At the end, filtering out one school in Utrecht that gave
 # no advice at all, so along the way we divided by 0.
 school_data <- school_data |>
   mutate(VWO_percent = (at_least_VWO / n_students) * 100,
@@ -250,7 +249,7 @@ ggplot(school_data, aes(x = score, y = pct)) +
   # Adding normal labels.
   labs(x = "% of students reaching target level, per school",
        y = "% of advice given, per school",
-       title = paste0("Do schools with similar target level",
+       title = paste0("Do schools with similar target level ",
                       "scores give similar school advice?"),
        subtitle = paste0("Solid lines show average trend. Dashed lines ",
                          "show where 80% of schools fall")) +
@@ -260,8 +259,6 @@ ggplot(school_data, aes(x = score, y = pct)) +
   # theme_minimal with larger text size and no minor grid.
   theme_minimal(base_size = 12) +
   theme(panel.grid.minor = element_blank())
-
-
 ```
 **The above plot shows % of advice given per school based on % of students in that school that reached target level. It includes lines showing that relationship for each recommendation type (like VWO or VMBO) and also includes singular schools as points. To be able to visualize the spread, and whether it is large, we showed 80% range of schools, and around where it is. It seems that there indeed is a relationship between how many children reach target level and what type of advice is given. Based on our research question, it does seem that a lot of schools, even if they have similar test results, give very different advice, which seems to be the case for all plots but especially the higher end of the VWO range, where the advice is very different between schools.**
 ```{r data-preparation-plot2}
