@@ -166,8 +166,12 @@ school_data <- school_data |>
 ```
 
 ```{r exploratory-plot1, fig.height = 5, fig.width = 7.5 , fig.align = "center"}
-
+# Making plot with score on x axis, and each line
+# representing the percentage of students with each advice.
+# Y-axis is that percentage.
 ggplot(school_data, aes(x = score)) +
+  # Each line has larger width and se set to FALSE
+  # for easier understanding of what is going on.
   geom_smooth(
     aes(y = VWO_percent, color = "VWO"),
     se = FALSE, linewidth = 1.7) +
@@ -177,19 +181,29 @@ ggplot(school_data, aes(x = score)) +
   geom_smooth(
     aes(y = VMBO_percent, color = "VMBO"),
     se = FALSE, linewidth = 1.7) +
+  # Now we use colors, since they are kind of factors,
+  # we chose to use a gradient.
+  # Also the legend will say all the options of what
+  # the students could have been so it does not mislead.
   scale_color_manual(
     name = "School advice",
-    values = c(VWO = "#08306B", HAVO = "#2F7FC1", VMBO = "#86C5F0"),
+    values = c(VWO = "#08306B",
+               HAVO = "#2F7FC1",
+               VMBO = "#86C5F0"),
     breaks = c("VWO", "HAVO", "VMBO"),
     labels = c(VWO = "VWO and VWO/HAVO",
-               HAVO = "HAVO and VMBO/HAVO",
+               HAVO = "HAVO and HAVO/VMBO",
                VMBO = "VMBO, PRO and VSO")) +
+  # Using labels and paste0 for lintr check to pass.
   labs(x = "% of students reaching target level, per school",
        y = "% of advice given, per school",
        title = paste0("% of school recommendations ",
                       "based on\npercentage of students ",
                       "reaching target level")) +
+  # Since the percentage chance is 0 to 100 for both axes,
+  # we changed both axes to show the entire range of possibilities.
   coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+  # theme_minimal with larger text size and no minor grid.
   theme_minimal(base_size = 12) +
   theme(panel.grid.minor = element_blank())
 
