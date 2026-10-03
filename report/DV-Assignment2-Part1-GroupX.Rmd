@@ -61,7 +61,6 @@ library(tidyverse)
 
 *Describe how you explored the data. Include at least one exploratory visualization below, and a short note on what it shows, and what you learned from it about your research question.*
 ```{r data-preparation-plot1}
-# Filip will be preparing data for plot 1 in this chunk.
 # Taking this from assignment 1 and adding VESTIGINGSCODE
 # as a grouper, so we can use every school.
 school_provider <- eindscores |>
@@ -190,14 +189,21 @@ n_two <- school_data |>
 # in each school that got each advice.
 # Later, since some schools had a lot too many or too few
 # advices compared to students, we normalize the number
-# into advice divided by advices given * 100 for percentage
+# into advice divided by advices given * 100 for percentage.
+# At the end, filtering out one school in Utrecht that gave 
+# no advice at all, so along the way we divided by 0.
 school_data <- school_data |>
   mutate(VWO_percent = (at_least_VWO / n_students) * 100,
          HAVO_percent = (at_least_HAVO / n_students) * 100,
          VMBO_percent = (VMBO_or_worse / n_students) * 100,
          total = VWO_percent + HAVO_percent + VMBO_percent,
          across(VWO_percent:VMBO_percent, ~ 100 * .x / total)) |>
-  select(!VSO:VMBO_or_worse, -total)
+  select(!VSO:VMBO_or_worse, -total) |>
+  filter(is.finite(score) &
+           is.finite(VWO_percent) &
+           is.finite(HAVO_percent) &
+           is.finite(VMBO_percent))
+
 
 ```
 
