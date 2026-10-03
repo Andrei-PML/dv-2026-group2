@@ -57,15 +57,21 @@ source(here("scripts", "01-get-data.R"))
 ## Exploratory process
 
 *Describe how you explored the data. Include at least one exploratory visualization below, and a short note on what it shows, and what you learned from it about your research question.*
+```{r data-preparation-plot1}
+# Filip will be preparing data for plot 1 in this chunk.
 
-```{r exploratory-plot}
 ```
 
-```{r exploratory-plot2-Filip}
-# I will put my plot in this chunk and keep updating as often as I do something.
+```{r exploratory-plot1}
+# Filip will make the exploratory plot in this chunk.
 
 
+```
 
+```{r data-preparation-plot2}
+```
+
+```{r exploratory-plot2}
 ```
 ---
 
