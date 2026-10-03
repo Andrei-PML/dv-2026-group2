@@ -82,7 +82,39 @@ primary_provider <- school_provider |>
   ungroup() |>
   select(INSTELLINGSCODE, VESTIGINGSCODE, provider)
 
+count_cols <- c(
+  "REKENEN_LAGER1F", "REKENEN_1F", "REKENEN_1S",
+  "LV_LAGER1F", "LV_1F", "LV_2F",
+  "TV_LAGER1F", "TV_1F", "TV_2F"
+)
 
+ref_levels <- referentieniveaus |>
+  mutate(across(all_of(count_cols), ~ suppressWarnings(as.numeric(.)))) |>
+  group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
+  summarise(
+    across(all_of(count_cols), ~ sum(.x, na.rm = TRUE)),
+    .groups = "drop"
+  ) |>
+  mutate(
+    rekenen_n = REKENEN_LAGER1F + REKENEN_1F + REKENEN_1S,
+    taal_lv_n = LV_LAGER1F + LV_1F + LV_2F,
+    taal_tv_n = TV_LAGER1F + TV_1F + TV_2F,
+    score = (
+      100 * REKENEN_1S / rekenen_n +
+        100 * LV_2F / taal_lv_n +
+        100 * TV_2F / taal_tv_n
+    ) / 3,
+    n_students = rekenen_n
+  ) |>
+  filter(rekenen_n > 0, taal_lv_n > 0, taal_tv_n > 0) |>
+  select(INSTELLINGSCODE, VESTIGINGSCODE, score, n_students)
+
+
+school_data <- ref_levels |>
+  inner_join(primary_provider, by = c("INSTELLINGSCODE", "VESTIGINGSCODE"))
+
+# school_data <- school_data |> - For later
+#  drop_na(score)
 
 
 ```
