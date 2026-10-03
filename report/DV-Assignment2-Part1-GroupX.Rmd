@@ -149,12 +149,7 @@ school_data <- school_data |>
 # Dropping any NAs that might be in the data and combining 
 # different advice types into at least VWO, at least HAVO
 # (without the VWO) and all lower than those.
-# Then - calculating percentages of students 
-# in each school that got the advice.
 
-# Later, since some schools had a lot too many
-# advices compared to students, we normalize the number
-# into advice/advices given
 school_data <- school_data |> 
   drop_na(score, n_students, VSO:VWO) |>
   group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
@@ -162,23 +157,23 @@ school_data <- school_data |>
          at_least_HAVO = VMBO_GT_HAVO + HAVO,
          VMBO_or_worse = rowSums(pick(VSO:VMBO_GT))) 
 # Now time to check what numbers are the best to replace <5 with 
-# so that there is mo issue with schools having too many
-# or too few students.
+# so that there is no issue with schools having too many
+# or too few students. When we were using 2, this was an issue.
 
 advice_check <- school_data |>
   group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
   mutate(total_advice = at_least_VWO + at_least_HAVO + VMBO_or_worse,
          over_advice = total_advice - n_students) |>
-  summarize(total_advice, n_students, over_advice) 
-
+  summarize(total_advice, n_students, over_advice, .groups = "drop_last") 
+# The mean with <5 being replaced by 2 was 1.8.
+# Then we computed a number that would make it 0. IF all computations
+# go correctly, all the following numbers will equal 0.
 mean(advice_check$over_advice)
-
-# Now let's try to find the number which would make it 0.
 
 # This is the sum by which our replacement overshoots.
 sum_over <- sum(advice_check$over_advice)
 
-# This is how many 2s we have in a dataset (used to be <5)
+# This is how many numbers replacing <5 we havein a dataset 
 n_two <- school_data |>
   ungroup() |>
   select(VSO:VWO) |>
@@ -186,18 +181,23 @@ n_two <- school_data |>
   (\(x) sum(x == 1.621641, na.rm = TRUE))()
 
 # Simple division to lower the overshoot by the amount we need.
+# Currently should equal the correct number, because
+# the overshoot is 0
 
 1.621641 - sum_over/n_two
 
-# With <5 replaced by 2, on average there is 1.8 too many advices per student.
-# We will change <5 to another number so the number is closer to 0.
-
-# school_data <-  mutate(VWO_percent = (at_least_VWO / n_students) * 100,
-#         HAVO_percent = (at_least_HAVO / n_students) * 100,
-#         VMBO_percent = (VMBO_or_worse / n_students) * 100) |>
-#  mutate(across(VWO_percent:VMBO_percent,
-#                ~ 100 * .x / (VWO_percent + HAVO_percent + VMBO_percent))) |>
-#  select(!at_least_VWO:VMBO_or_worse)
+# Now we will calculate percentages of students 
+# in each school that got each advice.
+# Later, since some schools had a lot too many or too few
+# advices compared to students, we normalize the number
+# into advice divided by advices given * 100 for percentage
+school_data <- school_data |>
+  mutate(VWO_percent = (at_least_VWO / n_students) * 100,
+         HAVO_percent = (at_least_HAVO / n_students) * 100,
+         VMBO_percent = (VMBO_or_worse / n_students) * 100,
+         total = VWO_percent + HAVO_percent + VMBO_percent,
+         across(VWO_percent:VMBO_percent, ~ 100 * .x / total)) |>
+  select(!VSO:VMBO_or_worse, -total)
 
 ```
 
