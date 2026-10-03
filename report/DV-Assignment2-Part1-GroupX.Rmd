@@ -61,6 +61,12 @@ source(here("scripts", "01-get-data.R"))
 ```{r exploratory-plot}
 ```
 
+```{r exploratory-plot2-Filip}
+# I will put my plot in this chunk and keep updating as often as I do something.
+
+
+
+```
 ---
 
 **Before submitting:** run the lintr check on this file, knit it, and push your work to GitHub.
