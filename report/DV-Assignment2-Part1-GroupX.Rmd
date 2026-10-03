@@ -113,6 +113,17 @@ ref_levels <- referentieniveaus |>
 school_data <- ref_levels |>
   inner_join(primary_provider, by = c("INSTELLINGSCODE", "VESTIGINGSCODE"))
 
+school_data <- school_data |>
+  left_join(schooladviezen |>
+              select(
+                INSTELLINGSCODE:INSTELLINGSNAAM_VESTIGING,
+                PLAATSNAAM,
+                GEMEENTENAAM,
+                PROVINCIE,
+                VSO:ADVIES_NIET_MOGELIJK),
+            by = c("INSTELLINGSCODE", "VESTIGINGSCODE"))
+
+
 # school_data <- school_data |> - For later
 #  drop_na(score)
 
