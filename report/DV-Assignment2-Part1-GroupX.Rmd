@@ -128,8 +128,13 @@ school_data <- school_data |>
                 ~ as.numeric(replace(.x, .x == "<5", "2.5"))))
 
 
-# school_data <- school_data |> - For later
-#  drop_na(score)
+school_data <- school_data |> 
+  drop_na(score, n_students, VSO:VWO) |>
+  group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
+  mutate(at_least_VWO = HAVO_VWO + VWO,
+         at_least_HAVO = VMBO_GT_HAVO + HAVO,
+         VMBO_or_worse = rowSums(pick(VSO:VMBO_GT))) |>
+  select(!VSO:ADVIES_NIET_MOGELIJK)
 
 
 ```
