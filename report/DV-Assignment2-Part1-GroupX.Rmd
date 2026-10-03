@@ -160,14 +160,18 @@ school_data <- school_data |>
          HAVO_percent = (at_least_HAVO / n_students) * 100,
          VMBO_percent = (VMBO_or_worse / n_students) * 100) |>
   mutate(across(VWO_percent:VMBO_percent,
-                ~ 100 * .x / (VWO_percent + HAVO_percent + VMBO_percent)))
-
+                ~ 100 * .x / (VWO_percent + HAVO_percent + VMBO_percent))) |>
+  select(!at_least_VWO:VMBO_or_worse)
 
 ```
 
 ```{r exploratory-plot1}
 # Filip will make the exploratory plot in this chunk.
 
+ggplot(school_data, aes(x = score)) +
+  geom_smooth(aes(y = VWO_percent), color = "green") +
+  geom_smooth(aes(y = HAVO_percent), color = "blue") +
+  geom_smooth(aes(y = VMBO_percent), color = "yellow") 
 
 ```
 
