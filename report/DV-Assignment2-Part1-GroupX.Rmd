@@ -172,7 +172,7 @@ mean(advice_check$over_advice)
 # This is the sum by which our replacement overshoots.
 sum_over <- sum(advice_check$over_advice)
 
-# This is how many numbers replacing <5 we havein a dataset
+# This is how many numbers replacing <5 we have in a dataset
 n_two <- school_data |>
   ungroup() |>
   select(VSO:VWO) |>
@@ -262,10 +262,131 @@ ggplot(school_data, aes(x = score, y = pct)) +
 ```
 *The above plot shows % of advice given per school based on % of students in that school that reached target level. It includes lines showing that relationship for each recommendation type (like VWO or VMBO) and also includes singular schools as points. To be able to visualize the spread, and whether it is large, we showed 80% range of schools, and around where it is. It seems that there indeed is a relationship between how many children reach target level and what type of advice is given. Based on our research question, it does seem that a lot of schools, even if they have similar test results, give very different advice, which seems to be the case for all plots but especially the higher end of the VWO range, where the advice is very different between schools. For example, there are schools with 100% having reached the target. Some schools give VWO advice around >85% of the time, while other schools give VWO advice only 15% of the time.*
 ```{r data-preparation-plot2}
+
+#In case there are multiple locations (vestings) in a school all the schoolweging scores in that school (instellings) are averaged. This way there is for sure only one score per school and it is easier to compute 
+
+#Right now, the codes for each school/location are merged in the OVT column (i.e 	00AP|C1, which has the intellingscode and the vestingscode). I am first separating them so that I can filter the schools properly, then averagnig the scores.
+
+schoolweging_by_school <- schoolweging |>
+  separate(OVT, into = c("INSTELLINGSCODE", "schoolweging_location"), sep = "\\|", remove = FALSE) |>
+  mutate(
+    schoolweging = as.numeric(str_replace(as.character(schoolweging), ",", ".")),
+    aantal_leerlingen = as.numeric(str_replace(as.character(aantal_leerlingen), ",", "."))
+  ) |>
+  filter(!is.na(INSTELLINGSCODE), !is.na(schoolweging)) |>
+  group_by(INSTELLINGSCODE) |>
+  summarise(
+    schoolweging = weighted.mean(
+      schoolweging,
+      w = if_else(is.na(aantal_leerlingen) | aantal_leerlingen <= 0, 1, aantal_leerlingen)
+    ),
+    .groups = "drop"
+  )
+
+#IM saving all the averaged schoolweging scores in a separate data set so that I can work with it without getting in the way of anyone else working on the school_data variable.
+school_data_schoolweging <- school_data |>
+  left_join(schoolweging_by_school, by = "INSTELLINGSCODE") |>
+  filter(is.finite(schoolweging), is.finite(pct))
 ```
 
 ```{r exploratory-plot2}
+#This graph looks at whether schools with a similar schoolweging score tend to give similar advice, and what that advice tends to be
+#The specific question I had in mind was: Do schools with a higher schooling score (more disadvantage) tend to recommand schools of a lower rank?
+#This graph is stylistically the same as the one above, for the sake of consistancy. But I do want to make more, just to play around.
+
+ggplot(school_data_schoolweging, aes(x = schoolweging, y = pct)) +
+  geom_point(aes(color = group), alpha = 0.075) +
+  geom_smooth(se = FALSE, color = "black") +
+  geom_quantile(
+    quantiles = c(0.1, 0.9),
+    color = "black",
+    linetype = "dashed",
+    linewidth = 1) +
+  facet_wrap(
+    ~ group,
+    nrow = 1,
+    labeller = as_labeller(c(
+      VWO = "VWO and HAVO/VWO",
+      HAVO = "HAVO and HAVO/VMBO",
+      VMBO = "VMBO, PRO and VSO"))) +
+  scale_color_manual(
+    values = c(
+      VWO = "#E66101",
+      HAVO = "#9E4F9E",
+      VMBO = "#2166AC"
+    ),
+    guide = "none"
+  ) +
+  
+  labs(
+    x = "School weighting (higher = more disadvantaged pupil population)",
+    y = "% of advice given, per school",
+    title = "Do schools with similar schoolweging scores give similar advice?",
+    subtitle = "Solid lines show average trends; dashed lines show where 80% of schools fall"
+  ) +
+  
+  coord_cartesian(ylim = c(0, 100)) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank())
 ```
+*The above plot shows % of advice given per school based on the average schoolweging score of an institution. The dashed lines represent the spread of the data (in this case, where 90% of the schools fall). The solid lines capture the trend of the data. This graph indicates that there might indeed be a realtionship between the schoolweging scores and the type of advice given. The left-most (orange) part of the graph, seems to indicate that schools with a low disadvantage weight are more likely to advice VWO and HAVO/VWO (more academic schools), for the future. ON the other side (the blue graph), suggests that schools with a high disadvantage score tend to advise VMBO, PRO or VSO more (more practical or special needs schools).*
+
+
+```{r exploratory-plot3}
+
+#Tried to do a boxplot for the same data, because I think boxplots are cool, but I do think it makes more sense to look at schoolweging (a continuous var) on a scatterplot. The boxplot is nice tho, because you can see the means each subgroup a bit better.
+school_data_boxplot <- school_data_schoolweging |>
+  mutate(
+    schoolweging_group = cut(
+      schoolweging,
+      breaks = c(20, 25, 30, 35, 40),
+      include.lowest = TRUE,
+      right = FALSE,
+      labels = c("20–24.9", "25–29.9", "30–34.9", "35–40")
+    ),
+    advice_group = factor(
+      group,
+      levels = c("VWO", "HAVO", "VMBO"),
+      labels = c(
+        "VWO and HAVO/VWO",
+        "HAVO and HAVO/VMBO",
+        "VMBO, PRO and VSO"))) |>
+    filter(
+    !is.na(schoolweging),
+    !is.na(schoolweging_group),
+    !is.na(pct)
+  )
+
+ggplot(
+  school_data_boxplot,
+  aes(x = schoolweging_group, y = pct, fill = advice_group)
+) +
+  geom_boxplot(
+    outlier.alpha = 0.12,
+    outlier.size = 0.7,
+    width = 0.7
+  ) +
+  coord_flip() +
+  facet_wrap(~ advice_group, ncol = 1) +
+  scale_fill_manual(
+    values = c(
+      "VWO and HAVO/VWO" = "#E66101",
+      "HAVO and HAVO/VMBO" = "#9E4F9E",
+      "VMBO, PRO and VSO" = "#2166AC"
+    ),
+    guide = "none"
+  ) +
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(
+    x = "School weighting group",
+    y = "% of pupils receiving this advice group",
+    title = "How does school advice differ across schoolweging groups?",
+    subtitle = "Boxes show the middle 50% of schools; lines inside boxes show medians"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank())
+```
+*This boxplot captures the same relationship as the one above. It investigates how a school's disadvantage weight (schoolweging) affects the type of advice that is given. In the boxplot, the spread of the data is a little better visualized (with the mean, standard deviation and outliers being more explictly shown). The top-most (orange) part of the graph, you can see that most people that are advised to follow a VWO and HAVO/VWO (more academic) track come from schools with a low average schoolweging score, and very few people that come from schools with a high schoolweging score are advised to follow these tracks. The same trend can be seen in the bottom part (blue) part of the graph, but flipped: most students advised to join a VMBO, PRO or VSO (more practical tracks) tend to be from schools with a high average schoolweging score, and very few are from schools with a high score.*
 ---
 
 **Before submitting:** run the lintr check on this file, knit it, and push your work to GitHub.
