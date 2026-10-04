@@ -16,13 +16,20 @@
 - Teodora Costache
 - Filip Gawrylczyk
 
-**Research question:** One sentence stating what you're investigating.
+**Research question:** RQ 3. Do schools with similar test results give similar secondary-school advice?
 
-**Level:** Analytics / Inference / Prediction 
+**Level:** Inference 
 
 ## About this project
 
-A short paragraph (3-5 sentences) on what this project looks at in the DUO doorstroomtoets (transfer test) data, and what you're trying to communicate with your final visualization.
+Our main goal is to find out if schools with the same test results give the same advice about which school the child should go to, while also seeing if school weights could explain these differences.
+We first operationalized test result as the percentage of children in each school that passed the reference levels for reading and math.
+Then we grouped advice into VWO and VWO/HAVO, HAVO and HAVO/VMBO and VMBO, PRO and VSO, so that we don't have too many levels. We also grouped schools on school weights as low, medium and high weights.
+The first plot shows test results and school advice, and what the spread looks like between schools. Through this plot we found out that schools vary quite a bit with their school advice, even accounting for test results. 
+The second and third plots how school weights influence that advice. We found out that they definitely do, but also most likely school weights are also correlated with test results, therefore we needed to look at the interaction, not just these two relationships.
+The fourth plot shows us exactly that. It shows how many children were given specific advice based on school test results, but this time the results were grouped per school weights - low, medium and high. Based on this plot we can see that school weight significantly impacts what advice someone gets. 
+Low school weight schools give more VWO advice, and less VMBO advice accounting for schools' test results compared to medium and high school weight schools. Meanwhile, high school weight schools give more VMBO advice and less VWO advice controlling for test results.
+
 
 ## Cloning this project
 
