@@ -1,11 +1,12 @@
 ---
-title: "DV Assignment 2: [Your Title Here]"
-author: "Group X: Firstname Lastname, Firstname Lastname, Firstname Lastname"
+title: "DV Assignment 2: Feedback Presentation"
+author: "Group 2: Teodora Costache, Andrei Dunuta, Filip Gawrylczyk"
 date: "`r Sys.Date()`"
 output:
   html_document:
     toc: true
     toc_float: true
+    code_folding: hide
 ---
 
 <!--
@@ -48,11 +49,17 @@ source("../scripts/00-packages.R")
 # eindscores, referentieniveaus, schooladviezen and schoolweging into this
 # session - see scripts/01-get-data.R for what each one contains
 source(here("scripts", "01-get-data.R"))
+
+library(tidyverse)
 ```
 
 ## Research question
 
-*What are you investigating, and why does it matter? Who is the target audience for your final visualization, and how does that shape your choices? You can start from what you wrote in Part 1.*
+RQ 3. Do schools with similar test results give similar secondary-school advice?
+
+*Level*: Inference
+
+*Target audience*: policymakers (education ministry).
 
 ## Exploratory process
 
