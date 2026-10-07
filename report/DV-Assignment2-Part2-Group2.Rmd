@@ -80,7 +80,7 @@ Schools with no advice data ("NA") were dropped.
 
 School advice has 12 possible levels in order from easiest to achieve to hardest to achieve:
 VSO < PRO < VMBO-B < VMBO-B/VMBO-K < VMBO-K < VMBO-K/VMBO-GT < VMBO-GT < VMBO-GT/HAVO < HAVO < HAVO/VWO < VWO.
-Whenever there is a mixed advice, for example HAVO/VWO, that means that a student has a mixed track for the first years of high school - after which one of the two possibilities is chosen for the rest of high school. 
+Whenever there is a mixed advice, for example HAVO/VWO, that means that a student has a mixed track for the first years of high school - after which one of the two possibilities is chosen for the rest of high school.
 ```{r data-preparation}
 # Taking this from assignment 1 and adding VESTIGINGSCODE
 # as a grouper, so we can use every school.
@@ -166,7 +166,8 @@ school_data <- school_data |>
 school_data <- school_data |>
   mutate(across(VSO:ADVIES_NIET_MOGELIJK,
                 ~ as.numeric(replace(.x, .x == "<5", "1.560554"))))
-
+# Saving the dataset for the final plot.
+school_data_final <- school_data
 # Dropping any NAs that might be in the data and combining
 # different advice types into at least VWO, at least HAVO
 # (without the VWO) and all lower than those.
@@ -275,7 +276,6 @@ school_data_schoolweging <- school_data |>
   filter(is.finite(schoolweging), is.finite(pct))
 ```
 
-
 ```{r exploratory-plot}
 # Split schools into three equal-sized schoolweging bands, so we can see
 # whether the score -> advice relationship changes with disadvantage.
@@ -311,9 +311,30 @@ ggplot(interaction_data, aes(x = score, y = pct, color = weging_band)) +
   theme(panel.grid.minor = element_blank(), legend.position = "top")
 ```
 
+
 ## Final visualization
 
 *Your final, explanatory visualization goes below. Include a short write-up: what does it communicate, why is this the best way to communicate it, and how robust is the finding?*
+
+```{r data-preparation-final-plot}
+
+school_data_final <- school_data_final |>
+  select(-VSO, - ADVIES_NIET_MOGELIJK) |>
+  mutate(total = rowSums(pick(PRO:VWO)),
+         across(PRO:VWO, ~ 100 * .x / total)) |>
+  select(-total) |>
+  filter(if_all(PRO:VWO, is.finite))
+
+school_data_final <- school_data_final |>
+  pivot_longer((PRO:VWO),
+               names_to = "group",
+               values_to = "pct") 
+
+schoolweging_final <- school_data_final |>
+  left_join(schoolweging_by_school, by = "INSTELLINGSCODE") |>
+  filter(is.finite(schoolweging), is.finite(pct))
+  
+```
 
 ```{r final-plot}
 ```
