@@ -87,6 +87,8 @@ School advice has 12 possible levels in order from easiest to achieve to hardest
 VSO < PRO < VMBO-B < VMBO-B/VMBO-K < VMBO-K < VMBO-K/VMBO-GT < VMBO-GT < VMBO-GT/HAVO < HAVO < HAVO/VWO < VWO.
 Whenever there is a mixed advice, for example HAVO/VWO, that means that a student has a mixed track for the first years of high school - after which one of the two possibilities is chosen for the rest of high school.
 
+We decided to group the possible school advice as following: VWO; HAVO and HAVO/VWO; VMBO/HAVO, VMBO and PRO. We did this so that visualizations would be more clear, because making a graph for every single individual group would clutter the final visualizations. When we created the different bins, we wanted to 'group down' in a sense. So if a school had mixed advice with HAVO/VWO we added it to the HAVO group (which is on a lower rank compared to VWO). We did it this way to mimick the pattern that we tend to see in the actual Dutch school system: if a child gets mixed advice, they are more likely to follow and complete the track that is on the lower on the ranking, rather than the one that is higher.
+
 For the schoolweging dataset specifically the VESTIGINGSCORE differed slightly from the code in other datasets, so this set was not joined to the rest of the data. Additionally, there were schools (INSTELLINGS) with multiple locations (VESTIGINGS) where the weging score differed between locations. The final schoolweging for such schools was computed as an average of the weging scores of each location.
 ```{r data-preparation}
 # Taking this from assignment 1 and adding VESTIGINGSCODE
