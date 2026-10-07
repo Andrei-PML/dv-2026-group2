@@ -166,8 +166,6 @@ school_data <- school_data |>
 school_data <- school_data |>
   mutate(across(VSO:ADVIES_NIET_MOGELIJK,
                 ~ as.numeric(replace(.x, .x == "<5", "1.560554"))))
-# Saving the dataset for the final plot.
-school_data_final <- school_data
 
 
 # Dropping any NAs that might be in the data and combining
@@ -177,9 +175,8 @@ school_data_final <- school_data
 school_data <- school_data |>
   drop_na(score, n_students, PRO:VWO) |>
   group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
-  mutate(at_least_VWO = HAVO_VWO + VWO,
-         at_least_HAVO = VMBO_GT_HAVO + HAVO,
-         VMBO_or_worse = rowSums(pick(PRO:VMBO_GT)))
+  mutate(HAVO_down = HAVO_VWO + HAVO,
+         VMBO_down = rowSums(pick(PRO:VMBO_GT_HAVO)))
 # Now time to check what numbers are the best to replace <5 with
 # so that there is no issue with schools having too many
 # or too few students. When we were using 2, this was an issue.
@@ -187,7 +184,7 @@ school_data <- school_data |>
 advice_check <- school_data |>
   group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
   mutate(total_advice = 
-           at_least_VWO + at_least_HAVO + VMBO_or_worse + VSO + ADVIES_NIET_MOGELIJK,
+           VWO + HAVO_down + VMBO_down + VSO + ADVIES_NIET_MOGELIJK,
          over_advice = total_advice - n_students) |>
   summarize(total_advice, n_students, over_advice, .groups = "drop_last")
 # The mean with <5 being replaced by 2 was 1.8.
@@ -203,7 +200,7 @@ sum_over <- sum(advice_check$over_advice)
 # This is how many numbers replacing <5 we have in a dataset
 n_two <- school_data |>
   ungroup() |>
-  select(VSO:VWO) |>
+  select(VSO:ADVIES_NIET_MOGELIJK) |>
   as.matrix() |>
   (\(x) sum(x == 1.560554, na.rm = TRUE))()
 
@@ -223,12 +220,12 @@ n_two <- school_data |>
 # no advice at all, so along the way we divided by 0.
 
 school_data <- school_data |>
-  mutate(VWO_percent = (at_least_VWO / n_students) * 100,
-         HAVO_percent = (at_least_HAVO / n_students) * 100,
-         VMBO_percent = (VMBO_or_worse / n_students) * 100,
+  mutate(VWO_percent = (VWO / n_students) * 100,
+         HAVO_percent = (HAVO_down / n_students) * 100,
+         VMBO_percent = (VMBO_down / n_students) * 100,
          total = VWO_percent + HAVO_percent + VMBO_percent,
          across(VWO_percent:VMBO_percent, ~ 100 * .x / total)) |>
-  select(!VSO:VMBO_or_worse, -total) |>
+  select(!VSO:VMBO_down, -total) |>
   filter(is.finite(score) &
            is.finite(VWO_percent) &
            is.finite(HAVO_percent) &
@@ -315,9 +312,9 @@ exp1 <- ggplot(school_data, aes(x = score, y = pct)) +
                 linetype = "dashed", linewidth = 1) +
   # In order to see all 3 plots at once we use facet wrap.
   facet_wrap(~ group, nrow = 1,
-             labeller = as_labeller(c(VWO = "VWO and VWO/HAVO",
-                                      HAVO = "HAVO and HAVO/VMBO",
-                                      VMBO = "VMBO, PRO and VSO"))) +
+             labeller = as_labeller(c(VWO = "VWO",
+                                      HAVO = "HAVO and HAVO/VWO",
+                                      VMBO = "VMBO/HAVO, VMBO and PRO"))) +
   # And we add some colors that are quite different from one another
   # But still show that there are factors so VMBO -> HAVO -> VWO
   scale_color_manual(values = c(VWO = "#E66101",
@@ -356,9 +353,9 @@ exp2 <- ggplot(school_data_schoolweging, aes(x = schoolweging, y = pct)) +
   geom_quantile(formula = y ~ x, quantiles = c(0.1, 0.9), color = "black", 
                 linetype = "dashed", linewidth = 1) +
   facet_wrap(~ group, nrow = 1,
-             labeller = as_labeller(c(VWO = "VWO and HAVO/VWO",
-                                      HAVO = "HAVO and HAVO/VMBO",
-                                      VMBO = "VMBO, PRO and VSO"))) +
+             labeller = as_labeller(c(VWO = "VWO",
+                                      HAVO = "HAVO and HAVO/VWO",
+                                      VMBO = "VMBO/HAVO, VMBO and PRO"))) +
   scale_color_manual(values = c(VWO = "#E66101",
                                 HAVO = "#9E4F9E",
                                 VMBO = "#2166AC"), guide = "none") +
@@ -384,29 +381,42 @@ plot_grid(exp1, exp2, nrow=2)
 
 *Your final, explanatory visualization goes below. Include a short write-up: what does it communicate, why is this the best way to communicate it, and how robust is the finding?*
 
-```{r data-preparation-final-plot}
-
-school_data_final <- school_data_final |>
-  select(-VSO, - ADVIES_NIET_MOGELIJK) |>
-  mutate(total = rowSums(pick(PRO:VWO)),
-         across(PRO:VWO, ~ 100 * .x / total)) |>
-  select(-total) |>
-  filter(if_all(PRO:VWO, is.finite))
-
-school_data_final <- school_data_final |>
-  pivot_longer((PRO:VWO),
-               names_to = "group",
-               values_to = "pct") 
-
-schoolweging_final <- school_data_final |>
-  group_by(INSTELLINGSCODE) |>
-  left_join(schoolweging_by_school, by = "INSTELLINGSCODE") |>
-  filter(is.finite(schoolweging), is.finite(pct))
-
-  
-```
 
 ```{r final-plot}
+
+# Split schools into three equal-sized schoolweging bands, so we can see
+# whether the score -> advice relationship changes with disadvantage.
+interaction_data <- school_data_schoolweging |>
+  ungroup() |>
+  mutate(
+    weging_band = cut(
+      schoolweging,
+      breaks = quantile(schoolweging, probs = c(0, 1 / 3, 2 / 3, 1)),
+      include.lowest = TRUE,
+      labels = c("Low (least disadvantaged)", "Middle",
+                 "High (most disadvantaged)")
+    )
+  )
+
+ggplot(interaction_data, aes(x = score, y = pct, color = weging_band)) +
+ # geom_point(alpha = 0.04, size = 0.8) + # No points for no line changing
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"),
+              se = FALSE, linewidth = 1.1) +
+  facet_wrap(~ group, nrow = 1,
+             labeller = as_labeller(c(VWO = "VWO",
+                                      HAVO = "HAVO and HAVO/VWO",
+                                      VMBO = "VMBO/HAVO, VMBO and PRO"))) +
+  scale_color_viridis_d(option = "plasma", end = 0.85,
+                        name = "Schoolweging band") +
+  labs(x = "% of students reaching target level, per school",
+       y = "% of advice given, per school",
+       title = "Does the link between test results 
+                and advice depend on disadvantage?",
+       subtitle = "Lines show the average trend
+                   within each schoolweging band") +
+  coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank(), legend.position = "top")
 ```
 
 ## Conclusion
