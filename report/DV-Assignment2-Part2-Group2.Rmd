@@ -165,14 +165,11 @@ school_data <- school_data |>
 
 school_data <- school_data |>
   mutate(across(VSO:ADVIES_NIET_MOGELIJK,
-<<<<<<< HEAD
                 ~ as.numeric(replace(.x, .x == "<5", "1.560554"))))
 # Saving the dataset for the final plot.
 school_data_final <- school_data
-=======
-                ~ as.numeric(replace(.x, .x == "<5", "1.621641"))))
 
->>>>>>> ba7190098ff91fba6454c47e5bd53e8e2e2660ce
+
 # Dropping any NAs that might be in the data and combining
 # different advice types into at least VWO, at least HAVO
 # (without the VWO) and all lower than those.
@@ -208,14 +205,14 @@ n_two <- school_data |>
   ungroup() |>
   select(VSO:VWO) |>
   as.matrix() |>
-  (\(x) sum(x == 1.621641, na.rm = TRUE))()
+  (\(x) sum(x == 1.560554, na.rm = TRUE))()
 
 # Simple division to lower the overshoot by the amount we need.
 # Currently should equal the correct number, because
 # the overshoot is 0
 
 # Useful when writing the code, but it clutters the report
-# 1.621641 - (sum_over / n_two)
+1.560554 - (sum_over / n_two)
 
 # Now we will calculate percentages of students
 # in each school that got each advice.
@@ -284,8 +281,7 @@ school_data_schoolweging <- school_data |>
   filter(is.finite(schoolweging), is.finite(pct))
 ```
 
-<<<<<<< HEAD
-```{r exploratory-plot}
+```{r exploratory-plot, fig.width = 7.5, fig.height = 10}
 # Split schools into three equal-sized schoolweging bands, so we can see
 # whether the score -> advice relationship changes with disadvantage.
 interaction_data <- school_data_schoolweging |>
@@ -300,10 +296,6 @@ interaction_data <- school_data_schoolweging |>
     )
   )
 
-ggplot(interaction_data, aes(x = score, y = pct, color = weging_band)) +
-=======
-
-```{r exploratory-plot, fig.width = 7.5, fig.height = 10}
 # Making plot with score on x axis, and each line
 # representing the percentage of students with each advice.
 # Y-axis is that percentage.
@@ -313,7 +305,6 @@ exp1 <- ggplot(school_data, aes(x = score, y = pct)) +
   geom_point(aes(color = group), alpha = 0.075) +
   # And add a line in the middle, that shows where, more or less
   # the averages are.
->>>>>>> ba7190098ff91fba6454c47e5bd53e8e2e2660ce
   geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"),
               se = FALSE, color = "black") +
   # Now with geom_quantile we create quantile lines, that
@@ -408,6 +399,7 @@ school_data_final <- school_data_final |>
                values_to = "pct") 
 
 schoolweging_final <- school_data_final |>
+  group_by(INSTELLINGSCODE) |>
   left_join(schoolweging_by_school, by = "INSTELLINGSCODE") |>
   filter(is.finite(schoolweging), is.finite(pct))
 
