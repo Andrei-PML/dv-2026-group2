@@ -65,6 +65,11 @@ RQ 3. Do schools with similar test results give similar secondary-school advice?
 
 *Describe how you explored the data before settling on your final visualization. Include at least one exploratory plot below (this can be the one from Part 1, or an updated one), and a short note on what it told you and how it influenced your final visualization.*
 
+For the initial exploration we are interested in investigating the 2 relationships. The first plot examines whether schools with similar target-level scores give similar school advice. The expectation would be that, if advice closely reflects measured academic performance, schools with comparable scores should have similar advice distributions. 
+
+The second plot looks at how schools with different schoolweging scores (school weight/disadvantage scores) differ in the type of advice they give. Here, we would hope that schools would give an equivalent proportion of advice for all types of secondary schools, regardless of their level of disadvantage. This would imply that the degree of disadvantage in a school has no effect on actual school performance and that all kids would have an equal chance at the type of higher education accessible to them. Differences in schools with different disadvantage scores could suggest that a child's academic performance is affected by the type of school they attend, or that the type of advice they receive changes depending on the school they come from.
+
+Given the fact that we don't have access to individual student scores, we cannot directly examine if children with the same score, but that come from different schools (either based on the target-level scores or the disadvantage scores) differ in the advice they receive. Thus we can only draw assumptions at school level.
 
 ### Data preparation and choices 
 
@@ -74,13 +79,15 @@ Percentage of students that passed reference levels was computed per school as t
 
 Since small numbers of students with each advice are not counted precisely below 5 and are given a "<5" marking, we computed the average of what these <5 mean in the dataset, which could be done thanks to the amount of students. Through this, we found that an average "<5" marking on advice equals 1.621641 students.
 
-Our dataset for computations already did not include any special schools (Sbo). Even if it did, we decided it would be wiser to drop it, because special schools have different criteria for giving school advice.
+Our dataset for computations did not include any special-needs schools (SBO/VSO). If it did, we would have removed such schools because we would assume that different advice criteria would apply to those schools. Specifically the advice wouldn't just be given based on the test performances of students, it would potentially involve personal characteristics of a child as well. Again, we cannot draw data at student level, only school level.
 
 Schools with no advice data ("NA") were dropped.
 
 School advice has 12 possible levels in order from easiest to achieve to hardest to achieve:
 VSO < PRO < VMBO-B < VMBO-B/VMBO-K < VMBO-K < VMBO-K/VMBO-GT < VMBO-GT < VMBO-GT/HAVO < HAVO < HAVO/VWO < VWO.
 Whenever there is a mixed advice, for example HAVO/VWO, that means that a student has a mixed track for the first years of high school - after which one of the two possibilities is chosen for the rest of high school.
+
+For the schoolweging dataset specifically the VESTIGINGSCORE differed slightly from the code in other datasets, so this set was not joined to the rest of the data. Additionally, there were schools (INSTELLINGS) with multiple locations (VESTIGINGS) where the weging score differed between locations. The final schoolweging for such schools was computed as an average of the weging scores of each location.
 ```{r data-preparation}
 # Taking this from assignment 1 and adding VESTIGINGSCODE
 # as a grouper, so we can use every school.
@@ -265,14 +272,8 @@ schoolweging_by_school <- schoolweging |>
     schoolweging = weighted.mean(
       schoolweging,
       w = if_else(is.na(aantal_leerlingen) | aantal_leerlingen <= 0, 1,
-                  aantal_leerlingen)
-    ),
-    .groups = "drop"
-  )
+                  aantal_leerlingen)))
 
-#IM saving all the averaged schoolweging scores in a separate data set so that
-# I can work with it without getting in the way of anyone else working on the
-# school_data variable.
 school_data_schoolweging <- school_data |>
   left_join(schoolweging_by_school, by = "INSTELLINGSCODE") |>
   filter(is.finite(schoolweging), is.finite(pct))
@@ -375,11 +376,29 @@ exp2 <- ggplot(school_data_schoolweging, aes(x = schoolweging, y = pct)) +
 
 plot_grid(exp1, exp2, nrow=2)
 ```
+FOr the first graph we observe the following trends:
 
+VWO: Schools with more students reaching the target level generally give more VWO advice.
+HAVO and HAVO/VWO: We can see the same trend here, but it's less pronounced.
+VMBO/HAVO, VMBO and PRO: It is very unlikely to get a recommandation for one of these schools as the target level increases.
+
+For the second graph we notice the following:
+VWO: VWO advice decreases sharply as schoolweging increases, meaning more disadvantaged schools give VWO as a study advice less.
+HAVO and HAVO/VWO: These recommendations also decrease, but more gradually.
+VMBO/HAVO, VMBO and PRO: Schools with larger school weging scores are more linely to advice one of these schools for the future.
+
+When looking at these 2 graphs next to each other they seem mirror images of each other (i.e VWO advice increases as target level increase; but it decreases as schoolweging increases). This made us think that there might be in interaction effect between target level scores and schoolweging.
 
 ## Final visualization
 
 *Your final, explanatory visualization goes below. Include a short write-up: what does it communicate, why is this the best way to communicate it, and how robust is the finding?*
+
+This graph investigates whether the relationship between target-level attainment and school advice differs by school disadvantage. It compares schools across the three schoolweging groups to explore whether similar target levels correspond to similar advice distributions. 
+
+We think this graph is a good visualization because it manages to display both the target attainment scores on the x-axis and it's interaction with the different bins of schoolweging. We removed unneccesary clutter from the original graphs (i.e the full scatter plot indicating every observation) and just focused on displaying the trend patterns in a clear way.
+
+Robustness: I dont really knwo what to say here, because we are kinda missing all variance descriptors in the graph, so idk hwo to explain that.
+
 
 
 ```{r final-plot}
@@ -423,6 +442,7 @@ ggplot(interaction_data, aes(x = score, y = pct, color = weging_band)) +
 
 *What can you conclude from your visualization? What are the limitations of this analysis?*
 
+Schools with similar test results do not necessarily give similar school advice distributions. The relationship varies by school disadvantage and advice category: differences between schoolweging scores are more pronounced for VWO and lower-track (less academically oriented schools) advice than for HAVO and HAVO/VWO. Test performance alone therefore does not fully describe the observed advice patterns. However, causal inference cannot be draw simply from visualization, but it is certainly a good basis for future research. 
 ---
 
 **Before submitting:** run the lintr check on this file, and re-knit from a clean environment (`rm(list = ls())`, already done above) to make sure everything reproduces from scratch.
