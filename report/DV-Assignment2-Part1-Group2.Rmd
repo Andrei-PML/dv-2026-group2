@@ -57,7 +57,7 @@ library(tidyverse)
 
 RQ 3. Do schools with similar test results give similar secondary-school advice?
 
-*Level*: Inference
+  *Level*: Inference
 
 *Target audience*: secondary schools, or policymakers.
 

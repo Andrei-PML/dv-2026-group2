@@ -9,6 +9,7 @@ output:
     code_folding: hide
 ---
 
+```{=html}
 <!--
 HOW TO KNIT THIS FILE
 
@@ -35,6 +36,7 @@ If knitting fails:
 
 This comment does not show up in the knitted .html, so you can leave it here.
 -->
+```
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -65,28 +67,18 @@ RQ 3. Do schools with similar test results give similar secondary-school advice?
 
 *Describe how you explored the data before settling on your final visualization. Include at least one exploratory plot below (this can be the one from Part 1, or an updated one), and a short note on what it told you and how it influenced your final visualization.*
 
-
-### Data preparation and choices 
-
-We excluded schools with <5 students, because the number of students and the amount of advice would simply be unknown for these schools, making it impossible to compute the percentage of students who got specific advice.
-
-Percentage of students that passed reference levels was computed per school as the average of the sum of tests passed divided by all tests taken, per school. Each student took 3 tests, mathematics, and 2 reading tests. Based on that, for example, if a school had 100 students, each student would take 3 tests, therefore there would be 300 tests taken. If in that school, 70 students passed math, 30 students passed reading 1, and 50 students passed reading 2, the percentage of students that passed the reference level would be 50% (70 + 30 + 50)/300 = 150/300 = 0.5 = 50%.
-
-Since small numbers of students with each advice are not counted precisely below 5 and are given a "<5" marking, we computed the average of what these <5 mean in the dataset, which could be done thanks to the amount of students. Through this, we found that an average "<5" marking on advice equals 1.621641 students.
-
-Our dataset for computations already did not include any special schools (Sbo). Even if it did, we decided it would be wiser to drop it, because special schools have different criteria for giving school advice.
-```{r data-preparation, include = FALSE}
+```{r data-preparation}
 # Taking this from assignment 1 and adding VESTIGINGSCODE
 # as a grouper, so we can use every school.
 school_provider <- eindscores |>
-  # The filter below only filters out regular schools.
-  filter(SOORT_PO == "Bo") |>
   select(INSTELLINGSCODE, VESTIGINGSCODE, matches("_(AANTAL|GEM)$")) |>
   pivot_longer(
     cols = matches("_(AANTAL|GEM)$"),
     names_to = c("provider", ".value"),
     names_pattern = "(.+)_(AANTAL|GEM)"
   ) |>
+  # DUO writes "<5" for small counts, so we decided to get
+  # rid of it because the computations would make no sense.
   mutate(AANTAL = suppressWarnings(as.numeric(AANTAL))) |>
   filter(!is.na(AANTAL), AANTAL > 0, !is.na(GEM), GEM > 0) |>
   group_by(INSTELLINGSCODE, VESTIGINGSCODE, provider) |>
@@ -125,8 +117,7 @@ ref_levels <- referentieniveaus |>
     n_students = rekenen_n
   ) |>
   filter(rekenen_n > 0, taal_lv_n > 0, taal_tv_n > 0) |>
-  select(INSTELLINGSCODE, VESTIGINGSCODE, score, n_students) 
-
+  select(INSTELLINGSCODE, VESTIGINGSCODE, score, n_students)
 # Joining reference with primary provider.
 school_data <- ref_levels |>
   inner_join(primary_provider, by = c("INSTELLINGSCODE", "VESTIGINGSCODE"))
@@ -231,10 +222,63 @@ school_data <- school_data |>
 
 
 
+# In case there are multiple locations (vestings) in a school all the
+# schoolweging scores in that school (instellings) are averaged. This way there
+# is for sure only one score per school and it is easier to compute.
+
+# Right now, the codes for each school/location are merged in the OVT column
+# (i.e 	00AP|C1, which has the intellingscode and the vestingscode). I am first
+# separating them so that I can filter the schools properly, then averagnig the
+# scores.
+
+schoolweging_by_school <- schoolweging |>
+  separate(OVT, into = c("INSTELLINGSCODE", "schoolweging_location"),
+           sep = "\\|", remove = FALSE) |>
+  mutate(
+    schoolweging = as.numeric(str_replace(as.character(schoolweging),
+                                          ",", ".")),
+    aantal_leerlingen = as.numeric(str_replace(as.character(aantal_leerlingen),
+                                               ",", "."))
+  ) |>
+  filter(!is.na(INSTELLINGSCODE), !is.na(schoolweging)) |>
+  group_by(INSTELLINGSCODE) |>
+  summarise(
+    schoolweging = weighted.mean(
+      schoolweging,
+      w = if_else(is.na(aantal_leerlingen) | aantal_leerlingen <= 0, 1,
+                  aantal_leerlingen)
+    ),
+    .groups = "drop"
+  )
+
+#IM saving all the averaged schoolweging scores in a separate data set so that
+# I can work with it without getting in the way of anyone else working on the
+# school_data variable.
+school_data_schoolweging <- school_data |>
+  left_join(schoolweging_by_school, by = "INSTELLINGSCODE") |>
+  filter(is.finite(schoolweging), is.finite(pct))
 ```
 
-
 ```{r exploratory-plot}
+ggplot(interaction_data, aes(x = score, y = pct, color = weging_band)) +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"),
+              se = FALSE, linewidth = 1.5) +
+  facet_wrap(~ group, nrow = 1,
+             labeller = as_labeller(c(VMBO = "VMBO, PRO and VSO",
+                                      HAVO = "HAVO and HAVO/VMBO",
+                                      VWO = "VWO and HAVO/VWO"
+                                      ))) +
+  scale_color_viridis_d(option = "plasma", end = 0.85,
+                        name = "Schoolweging band") +
+  labs(x = "% of students reaching target level, per school",
+       y = "% of advice given, per school",
+       title = paste0("Does the link between test results",
+                "and advice depend on disadvantage?"),
+       subtitle = paste0("Lines show the average trend",
+                   "within each schoolweging band")) +
+  coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank(), legend.position = "top")
 ```
 
 ## Final visualization
@@ -248,6 +292,6 @@ school_data <- school_data |>
 
 *What can you conclude from your visualization? What are the limitations of this analysis?*
 
----
+------------------------------------------------------------------------
 
 **Before submitting:** run the lintr check on this file, and re-knit from a clean environment (`rm(list = ls())`, already done above) to make sure everything reproduces from scratch.
