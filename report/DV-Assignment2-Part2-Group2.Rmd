@@ -267,7 +267,7 @@ schoolweging_by_school <- schoolweging |>
     .groups = "drop"
   )
 
-# IM saving all the averaged schoolweging scores in a separate data set so that
+#IM saving all the averaged schoolweging scores in a separate data set so that
 # I can work with it without getting in the way of anyone else working on the
 # school_data variable.
 school_data_schoolweging <- school_data |>
