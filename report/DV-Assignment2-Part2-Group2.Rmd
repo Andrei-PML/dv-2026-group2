@@ -72,7 +72,7 @@ We excluded schools with <5 students, because the number of students and the amo
 
 Percentage of students that passed reference levels was computed per school as the average of the sum of tests passed divided by all tests taken, per school. Each student took 3 tests, mathematics, and 2 reading tests. Based on that, for example, if a school had 100 students, each student would take 3 tests, therefore there would be 300 tests taken. If in that school, 70 students passed math, 30 students passed reading 1, and 50 students passed reading 2, the percentage of students that passed the reference level would be 50% (70 + 30 + 50)/300 = 150/300 = 0.5 = 50%.
 
-Since small numbers of students with each advice are not counted precisely below 5 and are given a "<5" marking, we computed the average of what these <5 mean in the dataset, which could be done thanks to the amount of students. Through this, we found that an average "<5" marking on advice equals 1.621641 students.
+Since small numbers of students with each advice are not counted precisely below 5 and are given a "<5" marking, we computed the average of what these <5 mean in the dataset, which could be done thanks to the amount of students. Through this, we found that an average "<5" marking on advice equals 1.560554 students.
 
 Our dataset for computations already did not include any special schools (Sbo). Even if it did, we decided it would be wiser to drop it, because special schools have different criteria for giving school advice.
 
@@ -165,7 +165,7 @@ school_data <- school_data |>
 
 school_data <- school_data |>
   mutate(across(VSO:ADVIES_NIET_MOGELIJK,
-                ~ as.numeric(replace(.x, .x == "<5", "1.621641"))))
+                ~ as.numeric(replace(.x, .x == "<5", "1.560554"))))
 
 # Dropping any NAs that might be in the data and combining
 # different advice types into at least VWO, at least HAVO
@@ -200,13 +200,13 @@ n_two <- school_data |>
   ungroup() |>
   select(VSO:VWO) |>
   as.matrix() |>
-  (\(x) sum(x == 1.621641, na.rm = TRUE))()
+  (\(x) sum(x == 1.560554, na.rm = TRUE))()
 
 # Simple division to lower the overshoot by the amount we need.
 # Currently should equal the correct number, because
 # the overshoot is 0
 
-1.621641 - (sum_over / n_two)
+1.560554 - (sum_over / n_two)
 
 # Now we will calculate percentages of students
 # in each school that got each advice.
@@ -238,7 +238,41 @@ school_data <- school_data |>
   mutate(group = factor(group, levels = c("VWO", "HAVO", "VMBO")))
 
 
+# In case there are multiple locations (vestings) in a school all the
+# schoolweging scores in that school (instellings) are averaged. This way there
+# is for sure only one score per school and it is easier to compute.
 
+# Right now, the codes for each school/location are merged in the OVT column
+# (i.e 	00AP|C1, which has the intellingscode and the vestingscode). I am first
+# separating them so that I can filter the schools properly, then averagnig the
+# scores.
+
+schoolweging_by_school <- schoolweging |>
+  separate(OVT, into = c("INSTELLINGSCODE", "schoolweging_location"),
+           sep = "\\|", remove = FALSE) |>
+  mutate(
+    schoolweging = as.numeric(str_replace(as.character(schoolweging),
+                                          ",", ".")),
+    aantal_leerlingen = as.numeric(str_replace(as.character(aantal_leerlingen),
+                                               ",", "."))
+  ) |>
+  filter(!is.na(INSTELLINGSCODE), !is.na(schoolweging)) |>
+  group_by(INSTELLINGSCODE) |>
+  summarise(
+    schoolweging = weighted.mean(
+      schoolweging,
+      w = if_else(is.na(aantal_leerlingen) | aantal_leerlingen <= 0, 1,
+                  aantal_leerlingen)
+    ),
+    .groups = "drop"
+  )
+
+# IM saving all the averaged schoolweging scores in a separate data set so that
+# I can work with it without getting in the way of anyone else working on the
+# school_data variable.
+school_data_schoolweging <- school_data |>
+  left_join(schoolweging_by_school, by = "INSTELLINGSCODE") |>
+  filter(is.finite(schoolweging), is.finite(pct))
 ```
 
 
