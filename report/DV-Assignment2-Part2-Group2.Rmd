@@ -238,7 +238,41 @@ school_data <- school_data |>
   mutate(group = factor(group, levels = c("VWO", "HAVO", "VMBO")))
 
 
+# In case there are multiple locations (vestings) in a school all the
+# schoolweging scores in that school (instellings) are averaged. This way there
+# is for sure only one score per school and it is easier to compute.
 
+# Right now, the codes for each school/location are merged in the OVT column
+# (i.e 	00AP|C1, which has the intellingscode and the vestingscode). I am first
+# separating them so that I can filter the schools properly, then averagnig the
+# scores.
+
+schoolweging_by_school <- schoolweging |>
+  separate(OVT, into = c("INSTELLINGSCODE", "schoolweging_location"),
+           sep = "\\|", remove = FALSE) |>
+  mutate(
+    schoolweging = as.numeric(str_replace(as.character(schoolweging),
+                                          ",", ".")),
+    aantal_leerlingen = as.numeric(str_replace(as.character(aantal_leerlingen),
+                                               ",", "."))
+  ) |>
+  filter(!is.na(INSTELLINGSCODE), !is.na(schoolweging)) |>
+  group_by(INSTELLINGSCODE) |>
+  summarise(
+    schoolweging = weighted.mean(
+      schoolweging,
+      w = if_else(is.na(aantal_leerlingen) | aantal_leerlingen <= 0, 1,
+                  aantal_leerlingen)
+    ),
+    .groups = "drop"
+  )
+
+#IM saving all the averaged schoolweging scores in a separate data set so that
+# I can work with it without getting in the way of anyone else working on the
+# school_data variable.
+school_data_schoolweging <- school_data |>
+  left_join(schoolweging_by_school, by = "INSTELLINGSCODE") |>
+  filter(is.finite(schoolweging), is.finite(pct))
 ```
 
 
