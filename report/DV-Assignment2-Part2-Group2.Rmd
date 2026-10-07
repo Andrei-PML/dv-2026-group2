@@ -279,7 +279,7 @@ school_data_schoolweging <- school_data |>
 ```
 
 
-```{r exploratory-plot, fig.width = 6, fig.height = 8}
+```{r exploratory-plot, fig.width = 7.5, fig.height = 10}
 # Making plot with score on x axis, and each line
 # representing the percentage of students with each advice.
 # Y-axis is that percentage.
