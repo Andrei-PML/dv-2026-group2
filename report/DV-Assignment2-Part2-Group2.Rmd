@@ -80,7 +80,7 @@ Schools with no advice data ("NA") were dropped.
 
 School advice has 12 possible levels in order from easiest to achieve to hardest to achieve:
 VSO < PRO < VMBO-B < VMBO-B/VMBO-K < VMBO-K < VMBO-K/VMBO-GT < VMBO-GT < VMBO-GT/HAVO < HAVO < HAVO/VWO < VWO.
-Whenever there are 
+Whenever there is a mixed advice, for example HAVO/VWO, that means that a student has a mixed track for the first years of high school - after which one of the two possibilities is chosen for the rest of high school. 
 ```{r data-preparation}
 # Taking this from assignment 1 and adding VESTIGINGSCODE
 # as a grouper, so we can use every school.
