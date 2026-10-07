@@ -257,6 +257,21 @@ schoolweging_by_school <- schoolweging |>
 school_data_schoolweging <- school_data |>
   left_join(schoolweging_by_school, by = "INSTELLINGSCODE") |>
   filter(is.finite(schoolweging), is.finite(pct))
+
+
+# Split schools into three equal-sized schoolweging bands, so we can see
+# whether the score -> advice relationship changes with disadvantage.
+interaction_data <- school_data_schoolweging |>
+  ungroup() |>
+  mutate(
+    weging_band = cut(
+      schoolweging,
+      breaks = quantile(schoolweging, probs = c(0, 1 / 3, 2 / 3, 1)),
+      include.lowest = TRUE,
+      labels = c("Low (least disadvantaged)", "Middle",
+                 "High (most disadvantaged)")
+    )
+  )
 ```
 
 ```{r exploratory-plot}
