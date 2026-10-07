@@ -72,7 +72,7 @@ We excluded schools with <5 students, because the number of students and the amo
 
 Percentage of students that passed reference levels was computed per school as the average of the sum of tests passed divided by all tests taken, per school. Each student took 3 tests, mathematics, and 2 reading tests. Based on that, for example, if a school had 100 students, each student would take 3 tests, therefore there would be 300 tests taken. If in that school, 70 students passed math, 30 students passed reading 1, and 50 students passed reading 2, the percentage of students that passed the reference level would be 50% (70 + 30 + 50)/300 = 150/300 = 0.5 = 50%.
 
-Since small numbers of students with each advice are not counted precisely below 5 and are given a "<5" marking, we computed the average of what these <5 mean in the dataset, which could be done thanks to the amount of students. Through this, we found that an average "<5" marking on advice equals 1.560554 students.
+Since small numbers of students with each advice are not counted precisely below 5 and are given a "<5" marking, we computed the average of what these <5 mean in the dataset, which could be done thanks to the amount of students. Through this, we found that an average "<5" marking on advice equals 1.621641 students.
 
 Our dataset for computations already did not include any special schools (Sbo). Even if it did, we decided it would be wiser to drop it, because special schools have different criteria for giving school advice.
 
@@ -165,9 +165,14 @@ school_data <- school_data |>
 
 school_data <- school_data |>
   mutate(across(VSO:ADVIES_NIET_MOGELIJK,
+<<<<<<< HEAD
                 ~ as.numeric(replace(.x, .x == "<5", "1.560554"))))
 # Saving the dataset for the final plot.
 school_data_final <- school_data
+=======
+                ~ as.numeric(replace(.x, .x == "<5", "1.621641"))))
+
+>>>>>>> ba7190098ff91fba6454c47e5bd53e8e2e2660ce
 # Dropping any NAs that might be in the data and combining
 # different advice types into at least VWO, at least HAVO
 # (without the VWO) and all lower than those.
@@ -191,7 +196,9 @@ advice_check <- school_data |>
 # The mean with <5 being replaced by 2 was 1.8.
 # Then we computed a number that would make it 0. IF all computations
 # go correctly, all the following numbers will equal 0.
-mean(advice_check$over_advice)
+
+# Useful when writing the code, but it clutters the report
+# mean(advice_check$over_advice)
 
 # This is the sum by which our replacement overshoots.
 sum_over <- sum(advice_check$over_advice)
@@ -201,13 +208,14 @@ n_two <- school_data |>
   ungroup() |>
   select(VSO:VWO) |>
   as.matrix() |>
-  (\(x) sum(x == 1.560554, na.rm = TRUE))()
+  (\(x) sum(x == 1.621641, na.rm = TRUE))()
 
 # Simple division to lower the overshoot by the amount we need.
 # Currently should equal the correct number, because
 # the overshoot is 0
 
-1.560554 - (sum_over / n_two)
+# Useful when writing the code, but it clutters the report
+# 1.621641 - (sum_over / n_two)
 
 # Now we will calculate percentages of students
 # in each school that got each advice.
@@ -276,6 +284,7 @@ school_data_schoolweging <- school_data |>
   filter(is.finite(schoolweging), is.finite(pct))
 ```
 
+<<<<<<< HEAD
 ```{r exploratory-plot}
 # Split schools into three equal-sized schoolweging bands, so we can see
 # whether the score -> advice relationship changes with disadvantage.
@@ -292,23 +301,91 @@ interaction_data <- school_data_schoolweging |>
   )
 
 ggplot(interaction_data, aes(x = score, y = pct, color = weging_band)) +
+=======
+
+```{r exploratory-plot, fig.width = 7.5, fig.height = 10}
+# Making plot with score on x axis, and each line
+# representing the percentage of students with each advice.
+# Y-axis is that percentage.
+exp1 <- ggplot(school_data, aes(x = score, y = pct)) +
+  # We add points for each school on the plot to be able
+  # to visualize the spread
+  geom_point(aes(color = group), alpha = 0.075) +
+  # And add a line in the middle, that shows where, more or less
+  # the averages are.
+>>>>>>> ba7190098ff91fba6454c47e5bd53e8e2e2660ce
   geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"),
-              se = FALSE, linewidth = 1.5) +
+              se = FALSE, color = "black") +
+  # Now with geom_quantile we create quantile lines, that
+  # show us where 80% of schools fall, to be able
+  # to see whether different schools give similar advice
+  # if they have similar test results, the line is dashed.
+  geom_quantile(formula = y ~ x, quantiles = c(0.1, 0.9), color = "black",
+                linetype = "dashed", linewidth = 1) +
+  # In order to see all 3 plots at once we use facet wrap.
+  facet_wrap(~ group, nrow = 1,
+             labeller = as_labeller(c(VWO = "VWO and VWO/HAVO",
+                                      HAVO = "HAVO and HAVO/VMBO",
+                                      VMBO = "VMBO, PRO and VSO"))) +
+  # And we add some colors that are quite different from one another
+  # But still show that there are factors so VMBO -> HAVO -> VWO
+  scale_color_manual(values = c(VWO = "#E66101",
+                                HAVO = "#9E4F9E",
+                                VMBO = "#2166AC"),
+                     guide = "none") +
+  # Adding normal labels.
+  labs(x = "% of students reaching target level, per school",
+       y = "% of advice given, per school",
+       title = paste0("Do schools with similar target level ",
+                      "scores give similar school advice?"),
+       subtitle = paste0("Solid lines show average trend. Dashed lines ",
+                         "show where 80% of schools fall")) +
+  # Since the percentage chance is 0 to 100 for both axes,
+  # we changed both axes to show the entire range of possibilities.
+  coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+  # theme_minimal with larger text size and no minor grid.
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank())
+
+
+
+# This graph looks at whether schools with a similar schoolweging score tend to
+# give similar advice, and what that advice tends to be.
+
+# The specific question I had in mind was: Do schools with a higher schooling
+# score (more disadvantage) tend to recommand schools of a lower rank?
+
+#This graph is stylistically the same as the one above, for the sake of
+# consistancy. But I do want to make more, just to play around.
+
+exp2 <- ggplot(school_data_schoolweging, aes(x = schoolweging, y = pct)) +
+  geom_point(aes(color = group), alpha = 0.075) +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"),
+              se = FALSE, color = "black") +
+  geom_quantile(formula = y ~ x, quantiles = c(0.1, 0.9), color = "black", 
+                linetype = "dashed", linewidth = 1) +
   facet_wrap(~ group, nrow = 1,
              labeller = as_labeller(c(VWO = "VWO and HAVO/VWO",
                                       HAVO = "HAVO and HAVO/VMBO",
                                       VMBO = "VMBO, PRO and VSO"))) +
-  scale_color_viridis_d(option = "plasma", end = 0.85,
-                        name = "Schoolweging band") +
-  labs(x = "% of students reaching target level, per school",
-       y = "% of advice given, per school",
-       title = paste0("Does the link between test results ",
-                "and advice depend on disadvantage?"),
-       subtitle = paste0("Lines show the average trend",
-                   "within each schoolweging band")) +
-  coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+  scale_color_manual(values = c(VWO = "#E66101",
+                                HAVO = "#9E4F9E",
+                                VMBO = "#2166AC"), guide = "none") +
+
+  labs(
+    x = "School weighting (higher = more disadvantaged pupil population)",
+    y = "% of advice given, per school",
+    title = "Do schools with similar schoolweging scores give similar advice?",
+    subtitle = paste0("Solid lines show average trends;",
+                "dashed lines show where 80% of schools fall")
+  ) +
+  coord_cartesian(ylim = c(0, 100)) +
   theme_minimal(base_size = 12) +
-  theme(panel.grid.minor = element_blank(), legend.position = "top")
+  theme(panel.grid.minor = element_blank())
+
+
+
+plot_grid(exp1, exp2, nrow=2)
 ```
 
 
@@ -333,6 +410,7 @@ school_data_final <- school_data_final |>
 schoolweging_final <- school_data_final |>
   left_join(schoolweging_by_school, by = "INSTELLINGSCODE") |>
   filter(is.finite(schoolweging), is.finite(pct))
+
   
 ```
 
