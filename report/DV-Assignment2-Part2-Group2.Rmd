@@ -73,6 +73,8 @@ We excluded schools with <5 students, because the number of students and the amo
 Percentage of students that passed reference levels was computed per school as the average of the sum of tests passed divided by all tests taken, per school. Each student took 3 tests, mathematics, and 2 reading tests. Based on that, for example, if a school had 100 students, each student would take 3 tests, therefore there would be 300 tests taken. If in that school, 70 students passed math, 30 students passed reading 1, and 50 students passed reading 2, the percentage of students that passed the reference level would be 50% (70 + 30 + 50)/300 = 150/300 = 0.5 = 50%.
 
 Since small numbers of students with each advice are not counted precisely below 5 and are given a "<5" marking, we computed the average of what these <5 mean in the dataset, which could be done thanks to the amount of students. Through this, we found that an average "<5" marking on advice equals 1.621641 students.
+
+Our dataset for computations already did not include any special schools (Sbo). Even if it did, we decided it would be wiser to drop it, because special schools have different criteria for giving school advice.
 ```{r data-preparation, include = FALSE}
 # Taking this from assignment 1 and adding VESTIGINGSCODE
 # as a grouper, so we can use every school.
