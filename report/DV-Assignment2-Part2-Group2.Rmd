@@ -53,6 +53,7 @@ source("../scripts/00-packages.R")
 source(here("scripts", "01-get-data.R"))
 
 library(tidyverse)
+library(ggtext)
 ```
 
 ## Research question
@@ -206,7 +207,7 @@ advice_check <- school_data |>
 sum_over <- sum(advice_check$over_advice)
 
 # This is how many numbers replacing <5 we have in a dataset
-n_two <- school_data |>
+n_five <- school_data |>
   ungroup() |>
   select(VSO:ADVIES_NIET_MOGELIJK) |>
   as.matrix() |>
@@ -379,7 +380,7 @@ We think this graph is a good visualization because it manages to display both t
 
 Robustness: The shaded areas show 95% confidence intervals around each trend line. These intervals are narrow across most of the plotted range, so the average trends are estimated precisely. For VWO and the lower-track advice, the three schoolweging bands stay clearly separated across most of the range, which suggests the gap between more and less disadvantaged schools is not due to chance. For HAVO and HAVO/VWO, the bands are closer together and converge above roughly 80%, so the difference there is weaker. We limited the x-axis to 25–100% because very few schools score below 25%, and trends in that region would be unreliable.
 
-```{r final-plot}
+```{r final-plot, fig.width = 10, fig.height = 7}
 
 # Split schools into three equal-sized schoolweging bands, so we can see
 # whether the score -> advice relationship changes with disadvantage.
@@ -399,26 +400,68 @@ ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
   geom_smooth(method = "lm", se = TRUE, alpha = 0.25, linewidth = 1.25) +
   facet_wrap(~ group, nrow = 1,
              labeller = as_labeller(c(VWO = "VWO",
-                                      HAVO = "HAVO+",
-                                      VMBO = "VMBO-"))) +
+                                      HAVO = "HAVO",
+                                      VMBO = "VMBO"))) +
   scale_color_viridis_d(option = "plasma", end = 0.9,
                         name = "Disadvantage") +
   scale_fill_viridis_d(option = "plasma", end = 0.9,
                        name = "Disadvantage") +
   labs(x = "\nstudents reaching target level, per school",
        y = "advice given, per school",
-       title = "Test results impact school advice. So does disadvantage\n",
+       title = "Test results impact school advice. So does disadvantage!\n",
        subtitle = paste0("Schools where the vast majority of pupils pass all",
-                         " of their exams\n send half as many of them to VWO",
-                         " if they'redisadvantaged\n")) +
+                         " of their exams send<br>**only half** as many",
+                         " of them to VWO if they are",
+                         " **socioeconomically disadvantaged**."),
+       caption = paste0("Note: VWO = VWO, HAVO = HAVO and HAVO/VWO, ",
+                        "VMBO = VMBO, VMBO/HAVO and PRO.<br>",
+                        "Disadvantage: ",
+                        "Low = 33.3% least disadvantaged ",
+                        "schools, ",
+                        "Middle = 33.3% of schools closest to average ",
+                        "disadvantage, ",
+                        "High = 33.3% most ",
+                        "disadvantaged schools.<br>",
+                        "Advice coded as &lt;5 was replaced by the mean ",
+                        "of these values (1.56). ",
+                        "Only regular schools with at least 5 students were ",
+                        "included.<br>Different school locations of the same ",
+                        "institution were grouped together as one school, ",
+                        "after grouping: N = 5,482 schools.<br>",
+                        "Disadvantage refers to socioeconomic ",
+                        "disadvantage. ",
+                        "Target levels were 1S for the mathematics exam ",
+                        "and 2F for both language exams. Reaching target ",
+                        "level was computed as the average rate of reaching ",
+                        "the target across these 3 exams, per school. ",
+                        "Shaded bands around the lines show the 95% ",
+                        "confidence interval."
+                        )) +
   coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
   scale_x_continuous(labels = scales::label_percent(scale = 1)) +
   scale_y_continuous(labels = scales::label_percent(scale = 1)) +
-  theme_minimal(base_size = 12) +
+  theme_minimal(base_size = 15) +
   theme(panel.grid.minor = element_blank(),
         legend.position = "top",
+        legend.justification = "left",
+        legend.margin = margin(t = 0, r = 0, b = 0, l = 0),
         panel.spacing = unit(1.5, "lines"),
-        plot.title = element_text(hjust = 0.5))
+        plot.title = element_text(
+        face = "bold", size = 20, hjust = 0,
+        margin = margin(b = 0)),
+        plot.subtitle = element_textbox_simple(
+        size = 13, color = "grey30", lineheight = 1.2,
+        padding = margin(0, 0, 0, 0),
+        margin = margin(t = -10, b = 20)),
+        plot.caption = element_textbox_simple(
+        size = 7, color = "grey45", lineheight = 1.5,
+        margin = margin(t = 15)),
+        plot.margin = margin(t = 10, r = 20, b = 10, l = 10),
+        legend.title = element_text(margin = margin(r = 10)),
+        axis.title.x = element_text(margin = margin(t = -7)),
+        axis.text.x = element_text(margin = margin(t = -7)),
+        axis.title.y = element_text(margin = margin(t = -7)),
+        axis.text.y = element_text(margin = margin(t = -7)))
 ```
 
 ## Conclusion
