@@ -408,7 +408,8 @@ ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
                        name = "Disadvantage") +
   labs(x = "\nstudents reaching target level, per school",
        y = "advice given, per school",
-       title = "Test results impact school advice. So does disadvantage!\n",
+       title = paste0("Test results impact school advice. ",
+                      "So does socioeconomic disadvantage!\n"),
        subtitle = paste0("Schools where the vast majority of pupils pass all",
                          " of their exams send<br>**only half** as many",
                          " of them to VWO if they are",
@@ -447,7 +448,7 @@ ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
         legend.margin = margin(t = 0, r = 0, b = 0, l = 0),
         panel.spacing = unit(1.5, "lines"),
         plot.title = element_text(
-        face = "bold", size = 20, hjust = 0,
+        face = "bold", size = 18, hjust = 0,
         margin = margin(b = 0)),
         plot.subtitle = element_textbox_simple(
         size = 13, color = "grey30", lineheight = 1.2,
