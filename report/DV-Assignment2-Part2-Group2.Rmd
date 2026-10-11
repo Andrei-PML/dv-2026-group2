@@ -66,23 +66,23 @@ RQ 3. Do schools with similar test results give similar secondary-school advice?
 
 ## Exploratory process
 
-*Describe how you explored the data before settling on your final visualization. Include at least one exploratory plot below (this can be the one from Part 1, or an updated one), and a short note on what it told you and how it influenced your final visualization.*
-
 We thought that target-level scores and schoolweging scores would be the most crucial variables for answering our question, so we decided to investigate their effect on school advice given to students, as part of our exploration.
 
-The first plot examines whether schools with target-level scores The expectation would be that, if advice closely reflects measured academic performance, schools with comparable scores should have similar advice distributions.
+The first plot examines whether schools with target-level scores send a similar amount of students to each school type. The expectation would be that, if advice closely reflects measured academic performance, schools with comparable scores should have similar advice distributions.
 
-The second plot looks at how schools with schoolweging scores Here, we would hope that schools would give an equivalent proportion of advice for all types of secondary schools, regardless of their level of disadvantage. This would imply that the degree of disadvantage in a school has no effect on the type of school student’s attend later in life. 
+The second plot looks at how schools with schoolweging scores give advice. Here, we would hope that schools would give an equivalent proportion of advice for all types of secondary schools, regardless of their level of disadvantage. This would imply that the degree of disadvantage in a school has no effect on the type of school students attend later in life. While the plot showed us that students from more disadvantaged schools do end up going to lower level schools.
+
 Given the fact that we don't have access to individual student scores, we cannot directly examine if children with the same score, but that come from different schools (either based on the target-level scores or the disadvantage scores) differ in the advice they receive. Thus we can only draw assumptions at school level.
 
+Through the exploration, we saw that schools differ quite a lot in which schools student get sent to *even* if the school scores are the same, and that disadvantage is correlated with school advice. Based on that, we wanted to see if, in fact, one of the explanations for why schools are so different in the advice they give, even with the same test results, could be disadvantage, which made us think about an interaction plot.
 
 ### Data preparation and choices
 
-We excluded schools with \<5 students, because the number of students and the amount of advice would simply be unknown for these schools, making it impossible to compute the percentage of students who got specific advice.
+We excluded schools with \<5 students, because the number of students and the amount of advice would simply be unknown for these schools, making advice computation have extremely large errors.
 
-Percentage of students that passed reference levels was computed per school as the average of the sum of tests passed divided by all tests taken, per school. Each student took 3 tests, mathematics, and 2 language tests. For example, if  a school had 100 students, each student would take 3 tests, therefore there would be 300 tests taken. If in that school, 70 students passed math, 30 students passed reading 1, and 50 students passed reading 2, the percentage of students that passed the reference level would be 50% (70 + 30 + 50)/300 = 150/300 = 0.5 = 50%.
+Percentage of students that passed reference levels was computed per school as the average of the sum of tests passed divided by all tests taken, per school. Each student took 3 tests, mathematics, and 2 language tests. For example, if a school had 100 students, each student would take 3 tests, therefore there would be 300 tests taken. If in that school, 70 students passed math, 30 students passed reading 1, and 50 students passed reading 2, the percentage of students that passed the reference level would be 50% (70 + 30 + 50)/300 = 150/300 = 0.5 = 50%.
 
-Since small numbers of students with each advice are not counted precisely, we computed the average of what these \<5 mean in the dataset, which could be done thanks to the amount of students. Through this, we found that an average "\<5" marking on advice equals ~1.56 students.
+Since small numbers of students with each advice are not counted precisely, we computed the average of what these \<5 mean in the dataset, which could be done thanks to the amount of students per school. Through this, we found that an average "\<5" marking on advice equals ~1.56 students.
 
 Our dataset for computations did not include any special-needs schools (SBO/VSO). If it did, we would have removed such schools because we would assume that different advice criteria would apply to those schools. Specifically the advice wouldn't just be given based on the test performances of students, it would potentially involve personal characteristics of a child as well. Again, we cannot draw data at student level, only school level.
 
@@ -90,12 +90,12 @@ Schools with no advice data ("NA") were dropped.
 
 School advice has 11 possible levels in order from easiest to achieve to hardest to achieve: VSO \< PRO \< VMBO-B \< VMBO-B/VMBO-K \< VMBO-K \< VMBO-K/VMBO-GT \< VMBO-GT \< VMBO-GT/HAVO \< HAVO \< HAVO/VWO \< VWO. Whenever there is mixed advice, for example HAVO/VWO, that means that a student has a mixed track for the first years of high school, after which one of the two possibilities is chosen for the rest of high school.
 
-We decided to group the possible school advice as following: VWO; HAVO and HAVO/VWO; VMBO/HAVO, VMBO and PRO. We did this so that visualizations would be. When we created the different bins, we wanted to 'group down' in a sense. So if a school had mixed advice with HAVO/VWO we added it to the HAVO group). We did it this way to mimic the pattern that we tend to see in the actual Dutch school system: if a child gets mixed advice, they are more likely to follow and complete the track that is lower in the ranking.
+We decided to group the possible school advice as following: VWO; HAVO and HAVO/VWO; VMBO-GT/HAVO, all VMBO and PRO. We did this so that visualizations would be easier to understand, yet still have detail. When we created the different bins, we wanted to 'group down' in a sense. So if a school had mixed advice with HAVO/VWO we added it to the HAVO group). We did it this way to mimic the pattern that we tend to see in the actual Dutch school system: if a child gets mixed advice, they are more likely to follow and complete the track that is lower in the ranking, rather than a higher one.
 
 For the schoolweging dataset, there were schools (INSTELLINGS) with multiple locations (VESTIGINGS) where the schoolweging score differed between locations. The final schoolweging for such schools was computed as an average of the schoolweging scores of each location.
 
 
-```{r data-preparation}
+```{r data-preparation, include = FALSE}
 school_provider <- eindscores |>
   # The filter below only filters out regular schools.
   filter(SOORT_PO == "Bo") |>
@@ -121,7 +121,7 @@ count_cols <- c(
   "LV_LAGER1F", "LV_1F", "LV_2F",
   "TV_LAGER1F", "TV_1F", "TV_2F"
 )
-
+# Reference levels and level passing computation.
 ref_levels <- referentieniveaus |>
   mutate(across(all_of(count_cols), ~ suppressWarnings(as.numeric(.)))) |>
   group_by(INSTELLINGSCODE, VESTIGINGSCODE) |>
@@ -163,7 +163,7 @@ school_data <- school_data |>
 # are for it to be 1, 2, 3 or 4, and the average is 2.5.
 # BUT THEN if we use 2.5 the numbers get inflated a lot over
 # n_student, for example a school with 13 student had a total
-# of advices as 30 - this happened with many schools.
+# advices as 30 - this happened with many schools.
 # Because of this we tried to use 2 instead of 2.5 -
 # close to the average of possibilities but a bit lower, but
 # it was still too much overshoot.
@@ -211,8 +211,9 @@ n_five <- school_data |>
 # Simple division to lower the overshoot by the amount we need.
 # Currently should equal the correct number, because
 # the overshoot is 0
-
-
+sum_over / n_five
+# This should be exactly the number of what we replaced <5 with.
+1.560554 - sum_over / n_five
 # Now we will calculate percentages of students
 # in each school that got each advice.
 # Later, since some schools had a lot too many or too few
@@ -270,11 +271,14 @@ school_data_schoolweging <- school_data |>
 # representing the percentage of students with each advice.
 # Y-axis is that percentage.
 exp1 <- ggplot(school_data, aes(x = score, y = pct)) +
-  geom_point(aes(color = group), alpha = 0.075) +    #add points to show the spread
-  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"),  #add line to show the average
+  #add points to show the spread
+  geom_point(aes(color = group), alpha = 0.075) +
+  #add line to show the average
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"),
               se = FALSE, color = "black") +
+  #dashed lines to show the quantile ranges (where 80% of obs fall)
   geom_quantile(formula = y ~ x, quantiles = c(0.1, 0.9), color = "black",
-                linetype = "dashed", linewidth = 1) +   #dashed lines to show the quantile ranges (where 80% of obs fall)
+                linetype = "dashed", linewidth = 1) +
   facet_wrap(~ group, nrow = 1,
              labeller = as_labeller(c(VWO = "VWO",
                                       HAVO = "HAVO and HAVO/VWO",
@@ -327,35 +331,33 @@ plot_grid(exp1, exp2, nrow = 2)
 
 For the first graph we observe the following trends:
 
-VWO: Schools with more students reaching the target level generally give more VWO advice. HAVO and HAVO/VWO: We can see the same trend here, but it's less pronounced. VMBO/HAVO, VMBO and PRO: It is very unlikely to get a recommendation for one of these schools as the target level increases.
+VWO: Schools with more students reaching the target level generally give more VWO advice. HAVO and HAVO/VWO: We can see the same trend here, but it's less pronounced. VMBO/HAVO, VMBO and PRO: It is very unlikely to get a recommendation for one of these schools as the target level increases. 
+The main point of the graph, however, are the segmented lines, which show the 80% interquantile range - 80% of schools fall within these boundaries. On this graph, these ranges are pretty wide, meaning schools differ a lot in how they give advice even if they have the same exact school results. This seems to happen especially at the higher test score part of the range.
 
 For the second graph we notice the following: 
 VWO: VWO advice decreases sharply as schoolweging increases, meaning more disadvantaged schools give VWO as study advice less. 
 VMBO/HAVO, VMBO and PRO: Schools with larger schoolweging scores are more likely to advise one of these schools for the future.
 
-When looking at these 2 graphs next to each other they seem mirror images of each other (i.e VWO advice increases as target level increase; but it decreases as schoolweging increases). This made us think that there might be in interaction effect between target level scores and schoolweging.
-
+When looking at these 2 graphs next to each other they seem mirror images of each other (i.e VWO advice increases as target level increase; but it decreases as schoolweging increases). This made us think that there might be in interaction effect between target level scores and schoolweging, and the first graph's differences in advice, might be explained by schoolweging.
 
 ## Final visualization
 
-*Your final, explanatory visualization goes below. Include a short write-up: what does it communicate, why is this the best way to communicate it, and how robust is the finding?*
-
 This graph investigates whether the relationship between target-level attainment and school advice differs by school disadvantage. It compares schools across the three schoolweging groups to explore whether similar target levels correspond to similar advice distributions.
 
-We think this graph is a good visualization because it manages to display both the target attainment scores on the x-axis and its interaction with the different bins of schoolweging. We removed unnecessary clutter from the original graphs (i.e the full scatter plot indicating every observation) and just focused on displaying the trend patterns in a clear way.
+We think this graph is a good visualization because it manages to display both the target attainment scores on the x-axis and its interaction with the different bins of schoolweging. We removed unnecessary clutter from the original graphs (i.e the full scatter plot indicating every observation) and just focused on displaying the trend patterns in a clear way. The schoolweging bins are made by quantiles - each bin contains almost exactly the same amount of schools, grouped by their schoolweging score.
 
-The shaded areas show 95% confidence intervals around each trend line. These intervals are narrow across most of the plotted range, so the average trends are estimated precisely. For VWO and the lower-track advice, the three schoolweging bands stay clearly separated across most of the range, which suggests the gap between more and less disadvantaged schools is not due to chance. For HAVO and HAVO/VWO, the bands are closer together and converge above roughly 80%, so the difference there is weaker. We limited the x-axis to 25–100% because very few schools score below 25%, and trends in that region would be unreliable.
-
+The shaded areas show 95% confidence intervals around each trend line. These intervals are narrow across most of the plotted range, so the average trends are estimated precisely. For VWO and the lower-track advice, the three schoolweging bands stay clearly separated across most of the range, which suggests the gap between more and less disadvantaged schools is not due to chance. For HAVO and HAVO/VWO, the bands are closer together and converge above roughly 80%, so the difference there is weaker.
 
 ```{r final-plot, fig.width = 10, fig.height = 7}
 
 # Split schools into three equal-sized schoolweging bands, so we can see
 # whether the score -> advice relationship changes with disadvantage.
 interaction_data <- school_data_schoolweging |>
-    ungroup() |>
+  ungroup() |>
   mutate(
     weging_band = cut(
       schoolweging,
+      # Binning schools by their quantiles.
       breaks = quantile(schoolweging, probs = c(0, 1 / 3, 2 / 3, 1)),
       include.lowest = TRUE,
       labels = c("Low", "Middle", "High")
@@ -364,15 +366,19 @@ interaction_data <- school_data_schoolweging |>
 
 ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
                              fill = weging_band)) +
+  # Using linear geom_smooth
   geom_smooth(method = "lm", se = TRUE, alpha = 0.25, linewidth = 1.25) +
+  # Facet wrap to make different plots.
   facet_wrap(~ group, nrow = 1,
              labeller = as_labeller(c(VWO = "VWO",
                                       HAVO = "HAVO",
                                       VMBO = "VMBO"))) +
+  # Making the colors distinct and also colorblind friendly.
   scale_color_viridis_d(option = "plasma", end = 0.9,
                         name = "Socioeconomic Disadvantage") +
   scale_fill_viridis_d(option = "plasma", end = 0.9,
                        name = "Socioeconomic Disadvantage") +
+  # Adding labels for axes, title, subtitle and "caption" (footnote).
   labs(x = "\nstudents reaching target level, per school",
        y = "advice given, per school",
        title = paste0("Test results impact school advice. ",
@@ -401,8 +407,10 @@ ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
                         "level was computed as the average rate of reaching ",
                         "the target across these 3 exams, per school. ",
                         "Shaded bands around the lines show the 95% ",
-                        "confidence interval."
-                        )) +
+                        "confidence interval.")) +
+  # The following parts of the graph are simply made to change the theme,
+  # and what the plot looks like, for example through adding % points to
+  # the graph or making the title bold.
   coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
   scale_x_continuous(labels = scales::label_percent(scale = 1)) +
   scale_y_continuous(labels = scales::label_percent(scale = 1)) +
@@ -413,15 +421,19 @@ ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
         legend.margin = margin(t = 0, r = 0, b = 0, l = 0),
         panel.spacing = unit(1.5, "lines"),
         plot.title = element_text(
-        face = "bold", size = 18, hjust = 0,
-        margin = margin(b = 0)),
+                                  face = "bold", size = 18, hjust = 0,
+                                  margin = margin(b = 0)),
         plot.subtitle = element_textbox_simple(
-        size = 13, color = "grey30", lineheight = 1.2,
-        padding = margin(0, 0, 0, 0),
-        margin = margin(t = -10, b = 20)),
-        plot.caption = element_textbox_simple(
-        size = 7, color = "grey45", lineheight = 1.5,
-        margin = margin(t = 15)),
+                                               size = 13, color = "grey30",
+                                               lineheight = 1.2,
+                                               padding = margin(0, 0, 0, 0),
+                                               margin = margin(
+                                                               t = -10,
+                                                               b = 20)),
+        plot.caption = element_textbox_simple(size = 7,
+                                              color = "grey45",
+                                              lineheight = 1.5,
+                                              margin = margin(t = 15)),
         plot.margin = margin(t = 10, r = 20, b = 10, l = 10),
         legend.title = element_text(margin = margin(r = 10)),
         axis.title.x = element_text(margin = margin(t = -7)),
@@ -434,14 +446,11 @@ ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
 
 *What can you conclude from your visualization? What are the limitations of this analysis?*
 
-Schools with similar test results do not necessarily give similar school advice distributions. The relationship varies by school disadvantage and advice category: differences between schoolweging scores are more pronounced for VWO and lower-track (less academically oriented schools) advice than for HAVO and HAVO/VWO. Test performance alone therefore does not fully describe the observed advice patterns. However, causal inference cannot be drawn simply from visualization, but it is certainly a good basis for future research.
+Schools with similar test results do not necessarily give similar school advice distributions. The relationship varies by school disadvantage and advice category: differences between schoolweging scores are more pronounced for VWO and lower-track (less academically oriented schools, like VMBO and PRO) advice than for HAVO and HAVO/VWO. Test performance alone therefore does not fully describe the observed advice patterns. However, causal inference cannot be drawn simply from visualization, but it is certainly a good basis for future research.
 
 ### AI USE
 
 We tried to use AI as little as possible. We used it at the beginning, during the exploration stage, to quickly test out different styles of plots to get an idea of how we can start to visualize the data. This was done like this: we described in detail the dataset we have, the specific research questions we wanted to see and asking the AI to generate a scatter/box/line plot etc.  This was to give us some directions for the types of plot we wanted to use. The actual code for the plots was still (mostly) done manually.
-For the code, AI was used only to get help with specific colour hex codes or to look up smaller/less well know functions within the ggplot function (i.e what functions to use to write the title of a graph in a specific way).
+For the code, AI was used only to get help with specific colour hex codes or to look up smaller/less well know functions within the ggplot function, (i.e. what functions to use to write the title of a graph in a specific way, or change placement of the title and subtitle).
 AI was not involved in any of the writing for the report.
-UvA AI Chat was used for all this.
-
-
-**Before submitting:** run the lintr check on this file, and re-knit from a clean environment (`rm(list = ls())`, already done above) to make sure everything reproduces from scratch.
+UvA AI Chat, and Claude Sonnet 5.5 were used for all this.
