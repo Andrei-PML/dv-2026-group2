@@ -95,7 +95,7 @@ We decided to group the possible school advice as following: VWO; HAVO and HAVO/
 For the schoolweging dataset, there were schools (INSTELLINGS) with multiple locations (VESTIGINGS) where the schoolweging score differed between locations. The final schoolweging for such schools was computed as an average of the schoolweging scores of each location.
 
 
-```{r data-preparation, include = FALSE}
+```{r data-preparation, results='hide'}
 school_provider <- eindscores |>
   # The filter below only filters out regular schools.
   filter(SOORT_PO == "Bo") |>
@@ -367,7 +367,7 @@ interaction_data <- school_data_schoolweging |>
 ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
                              fill = weging_band)) +
   # Using linear geom_smooth
-  geom_smooth(method = "lm", se = TRUE, alpha = 0.25, linewidth = 1.25) +
+  geom_smooth(method = "lm", formula = 'y ~ x', se = TRUE, alpha = 0.25, linewidth = 1.25) +
   # Facet wrap to make different plots.
   facet_wrap(~ group, nrow = 1,
              labeller = as_labeller(c(VWO = "VWO",
@@ -443,8 +443,6 @@ ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
 ```
 
 ## Conclusion
-
-*What can you conclude from your visualization? What are the limitations of this analysis?*
 
 Schools with similar test results do not necessarily give similar school advice distributions. The relationship varies by school disadvantage and advice category: differences between schoolweging scores are more pronounced for VWO and lower-track (less academically oriented schools, like VMBO and PRO) advice than for HAVO and HAVO/VWO. Test performance alone therefore does not fully describe the observed advice patterns. However, causal inference cannot be drawn simply from visualization, but it is certainly a good basis for future research.
 
