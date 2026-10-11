@@ -54,6 +54,7 @@ source(here("scripts", "01-get-data.R"))
 
 library(tidyverse)
 library(ggtext)
+library(lmtest)
 ```
 
 ## Research question
@@ -342,14 +343,9 @@ When looking at these 2 graphs next to each other they seem mirror images of eac
 
 ## Final visualization
 
-This graph investigates whether the relationship between target-level attainment and school advice differs by school disadvantage. It compares schools across the three schoolweging groups to explore whether similar target levels correspond to similar advice distributions.
+We performed an F-test with Holm-Bonferroni correction comparing nested linear models of target × disadvantage interaction run separately for each advice category (VWO, HAVO, VMBO). The relationship between target achievement and advice differed by disadvantage level among the three test types (linear regression, on the school level) showing group differences on a level of *p* < .001. And so we decided to look at this interaction with the following graph.
 
-We think this graph is a good visualization because it manages to display both the target attainment scores on the x-axis and its interaction with the different bins of schoolweging. We removed unnecessary clutter from the original graphs (i.e the full scatter plot indicating every observation) and just focused on displaying the trend patterns in a clear way. The schoolweging bins are made by quantiles - each bin contains almost exactly the same amount of schools, grouped by their schoolweging score.
-
-The shaded areas show 95% confidence intervals around each trend line. These intervals are narrow across most of the plotted range, so the average trends are estimated precisely. For VWO and the lower-track advice, the three schoolweging bands stay clearly separated across most of the range, which suggests the gap between more and less disadvantaged schools is not due to chance. For HAVO and HAVO/VWO, the bands are closer together and converge above roughly 80%, so the difference there is weaker.
-
-```{r final-plot, fig.width = 10, fig.height = 7}
-
+```{r, results='hide'}
 # Split schools into three equal-sized schoolweging bands, so we can see
 # whether the score -> advice relationship changes with disadvantage.
 interaction_data <- school_data_schoolweging |>
@@ -363,11 +359,59 @@ interaction_data <- school_data_schoolweging |>
       labels = c("Low", "Middle", "High")
     )
   )
+# We are going to do an anoova test on whether the
+# different schoolweging bands differ for advice group.
+# AI helped with the following code due to lack of time, and us seeing
+# we have to have a significance test very close to the deadline, but
+# we do understand what is going on.
+df <- interaction_data |>
+  mutate(
+    advice = pct / 100,
+    target = score / 100,
+    track  = group,
+    disadv = factor(weging_band, levels = c("Low", "Middle", "High")),
+    school = INSTELLINGSCODE
+  )
+
+test_track_anova <- function(tr) {
+  dat <- df[df$track == tr, ]
+  m_full <- lm(advice ~ target * disadv, data = dat) # Interaction.
+  m_red  <- lm(advice ~ target + disadv, data = dat) # No interaction.
+  a <- anova(m_red, m_full)
+
+  data.frame(
+    track = tr,
+    F     = a$F[2],
+    df1   = a$Df[2],
+    df2   = a$Res.Df[2],
+    p     = a$`Pr(>F)`[2]
+  )
+}
+
+tracks  <- unique(as.character(df$track))
+results <- do.call(rbind, lapply(tracks, test_track_anova))
+
+# Holm correction across the three tracks
+results$p_holm <- p.adjust(results$p, method = "holm")
+
+results
+
+# It seems like there is a pretty large difference in every group.
+```
+
+This graph investigates whether the relationship between target-level attainment and school advice differs by school disadvantage. It compares schools across the three schoolweging groups to explore whether similar target levels correspond to similar advice distributions.
+
+We think this graph is a good visualization because it manages to display both the target attainment scores on the x-axis and its interaction with the different bins of schoolweging. We removed unnecessary clutter from the original graphs (i.e the full scatter plot indicating every observation) and just focused on displaying the trend patterns in a clear way. The schoolweging bins are made by quantiles - each bin contains almost exactly the same amount of schools, grouped by their schoolweging score.
+
+The shaded areas show 95% confidence intervals around each trend line. These intervals are narrow across most of the plotted range, so the average trends are estimated precisely. For VWO and the lower-track advice, the three schoolweging bands stay clearly separated across most of the range, especially the higher end, which suggests the gap between more and less disadvantaged schools is indeed there. For HAVO and HAVO/VWO, the bands are closer together and converge above roughly 80%, however, below that, there does seem to also be a difference between the schoolweging bands.
+
+```{r final-plot, fig.width = 10, fig.height = 7}
 
 ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
                              fill = weging_band)) +
   # Using linear geom_smooth
-  geom_smooth(method = "lm", formula = 'y ~ x', se = TRUE, alpha = 0.25, linewidth = 1.25) +
+  geom_smooth(method = "lm", formula = "y ~ x",
+              se = TRUE, alpha = 0.25, linewidth = 1.25) +
   # Facet wrap to make different plots.
   facet_wrap(~ group, nrow = 1,
              labeller = as_labeller(c(VWO = "VWO",
@@ -444,11 +488,11 @@ ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
 
 ## Conclusion
 
-Schools with similar test results do not necessarily give similar school advice distributions. The relationship varies by school disadvantage and advice category: differences between schoolweging scores are more pronounced for VWO and lower-track (less academically oriented schools, like VMBO and PRO) advice than for HAVO and HAVO/VWO. Test performance alone therefore does not fully describe the observed advice patterns. However, causal inference cannot be drawn simply from visualization, but it is certainly a good basis for future research.
+Schools with similar test results do not necessarily give similar school advice distributions. The relationship varies by school disadvantage and advice category: differences between schoolweging scores are more pronounced for VWO and lower-track (less academically oriented schools, like VMBO and PRO) advice than for HAVO and HAVO/VWO. However, the differences are significant across all three advice levels. Test performance alone therefore does not fully describe the observed advice patterns, and socioeconomic disadvantage has an important explanatory, though unknown if causal, role. However, causal inference cannot be drawn simply from visualization, and an F-test, but it is certainly a good basis for future, possibly experimental, research.
 
 ### AI USE
 
 We tried to use AI as little as possible. We used it at the beginning, during the exploration stage, to quickly test out different styles of plots to get an idea of how we can start to visualize the data. This was done like this: we described in detail the dataset we have, the specific research questions we wanted to see and asking the AI to generate a scatter/box/line plot etc.  This was to give us some directions for the types of plot we wanted to use. The actual code for the plots was still (mostly) done manually.
-For the code, AI was used only to get help with specific colour hex codes or to look up smaller/less well know functions within the ggplot function, (i.e. what functions to use to write the title of a graph in a specific way, or change placement of the title and subtitle).
+For the code, AI was used only to get help with specific colour hex codes or to look up smaller/less well know functions within the ggplot function, (i.e. what functions to use to write the title of a graph in a specific way, or change placement of the title and subtitle). AI was also used to do an ANOVA significance test.
 AI was not involved in any of the writing for the report.
 UvA AI Chat, and Claude Sonnet 5.5 were used for all this.

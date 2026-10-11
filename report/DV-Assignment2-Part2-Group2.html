@@ -1940,6 +1940,64 @@ explained by schoolweging.</p>
 </div>
 <div id="final-visualization" class="section level2">
 <h2>Final visualization</h2>
+<p>We performed an F-test with Holm-Bonferroni correction comparing
+nested linear models of target × disadvantage interaction run separately
+for each advice category (VWO, HAVO, VMBO). The relationship between
+target achievement and advice differed by disadvantage level among the
+three test types (linear regression, on the school level) showing group
+differences on a level of <em>p</em> &lt; .001. And so we decided to
+look at this interaction with the following graph.</p>
+<pre class="r"><code># Split schools into three equal-sized schoolweging bands, so we can see
+# whether the score -&gt; advice relationship changes with disadvantage.
+interaction_data &lt;- school_data_schoolweging |&gt;
+  ungroup() |&gt;
+  mutate(
+    weging_band = cut(
+      schoolweging,
+      # Binning schools by their quantiles.
+      breaks = quantile(schoolweging, probs = c(0, 1 / 3, 2 / 3, 1)),
+      include.lowest = TRUE,
+      labels = c(&quot;Low&quot;, &quot;Middle&quot;, &quot;High&quot;)
+    )
+  )
+# We are going to do an anoova test on whether the
+# different schoolweging bands differ for advice group.
+# AI helped with the following code due to lack of time, and us seeing
+# we have to have a significance test very close to the deadline, but
+# we do understand what is going on.
+df &lt;- interaction_data |&gt;
+  mutate(
+    advice = pct / 100,
+    target = score / 100,
+    track  = group,
+    disadv = factor(weging_band, levels = c(&quot;Low&quot;, &quot;Middle&quot;, &quot;High&quot;)),
+    school = INSTELLINGSCODE
+  )
+
+test_track_anova &lt;- function(tr) {
+  dat &lt;- df[df$track == tr, ]
+  m_full &lt;- lm(advice ~ target * disadv, data = dat) # Interaction.
+  m_red  &lt;- lm(advice ~ target + disadv, data = dat) # No interaction.
+  a &lt;- anova(m_red, m_full)
+
+  data.frame(
+    track = tr,
+    F     = a$F[2],
+    df1   = a$Df[2],
+    df2   = a$Res.Df[2],
+    p     = a$`Pr(&gt;F)`[2]
+  )
+}
+
+tracks  &lt;- unique(as.character(df$track))
+results &lt;- do.call(rbind, lapply(tracks, test_track_anova))
+
+# Holm correction across the three tracks
+results$p_holm &lt;- p.adjust(results$p, method = &quot;holm&quot;)
+
+results
+
+# It seems like there is a pretty large difference in every group.</code></pre>
 <p>This graph investigates whether the relationship between target-level
 attainment and school advice differs by school disadvantage. It compares
 schools across the three schoolweging groups to explore whether similar
@@ -1956,28 +2014,16 @@ their schoolweging score.</p>
 line. These intervals are narrow across most of the plotted range, so
 the average trends are estimated precisely. For VWO and the lower-track
 advice, the three schoolweging bands stay clearly separated across most
-of the range, which suggests the gap between more and less disadvantaged
-schools is not due to chance. For HAVO and HAVO/VWO, the bands are
-closer together and converge above roughly 80%, so the difference there
-is weaker.</p>
-<pre class="r"><code># Split schools into three equal-sized schoolweging bands, so we can see
-# whether the score -&gt; advice relationship changes with disadvantage.
-interaction_data &lt;- school_data_schoolweging |&gt;
-  ungroup() |&gt;
-  mutate(
-    weging_band = cut(
-      schoolweging,
-      # Binning schools by their quantiles.
-      breaks = quantile(schoolweging, probs = c(0, 1 / 3, 2 / 3, 1)),
-      include.lowest = TRUE,
-      labels = c(&quot;Low&quot;, &quot;Middle&quot;, &quot;High&quot;)
-    )
-  )
-
-ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
+of the range, especially the higher end, which suggests the gap between
+more and less disadvantaged schools is indeed there. For HAVO and
+HAVO/VWO, the bands are closer together and converge above roughly 80%,
+however, below that, there does seem to also be a difference between the
+schoolweging bands.</p>
+<pre class="r"><code>ggplot(interaction_data, aes(x = score, y = pct, color = weging_band,
                              fill = weging_band)) +
   # Using linear geom_smooth
-  geom_smooth(method = &quot;lm&quot;, formula = &#39;y ~ x&#39;, se = TRUE, alpha = 0.25, linewidth = 1.25) +
+  geom_smooth(method = &quot;lm&quot;, formula = &quot;y ~ x&quot;,
+              se = TRUE, alpha = 0.25, linewidth = 1.25) +
   # Facet wrap to make different plots.
   facet_wrap(~ group, nrow = 1,
              labeller = as_labeller(c(VWO = &quot;VWO&quot;,
@@ -2059,9 +2105,12 @@ school advice distributions. The relationship varies by school
 disadvantage and advice category: differences between schoolweging
 scores are more pronounced for VWO and lower-track (less academically
 oriented schools, like VMBO and PRO) advice than for HAVO and HAVO/VWO.
+However, the differences are significant across all three advice levels.
 Test performance alone therefore does not fully describe the observed
-advice patterns. However, causal inference cannot be drawn simply from
-visualization, but it is certainly a good basis for future research.</p>
+advice patterns, and socioeconomic disadvantage has an important
+explanatory, though unknown if causal, role. However, causal inference
+cannot be drawn simply from visualization, and an F-test, but it is
+certainly a good basis for future, possibly experimental, research.</p>
 <div id="ai-use" class="section level3">
 <h3>AI USE</h3>
 <p>We tried to use AI as little as possible. We used it at the
@@ -2075,9 +2124,10 @@ the plots was still (mostly) done manually. For the code, AI was used
 only to get help with specific colour hex codes or to look up
 smaller/less well know functions within the ggplot function, (i.e. what
 functions to use to write the title of a graph in a specific way, or
-change placement of the title and subtitle). AI was not involved in any
-of the writing for the report. UvA AI Chat, and Claude Sonnet 5.5 were
-used for all this.</p>
+change placement of the title and subtitle). AI was also used to do an
+ANOVA significance test. AI was not involved in any of the writing for
+the report. UvA AI Chat, and Claude Sonnet 5.5 were used for all
+this.</p>
 </div>
 </div>
 
